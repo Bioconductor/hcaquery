@@ -1,16 +1,31 @@
 Package: hcaquery
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Conversion of single cell experiment output files to relational database
+Version: 0.0.1
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Maya",
+           family = "McDaniel",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+           email = "maya.mcdaniel@roswellpark.org")
+Description: This package is a follow-up to the `hca` package, a wrapper around
+    the API provided by the Human Cell Atlas to access single cell experiment
+    output. Here, we dowload sets of `.loom` and `.h5ad` files and extract their
+    assay matrices, gene annotations, and cell annotations for representation
+    in a relational database structure for easier querying.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
+Depends: R (>= 4.1)
+Imports:
+    DBI,
+    LoomExperiment,
+    RPostgres,
+    SummarizedExperiment,
+    dplyr,
+    hca,
+    rstudioapi,
+    tibble,
+    zellkonverter,
+    tidyselect
+biocViews: Software, SingleCell

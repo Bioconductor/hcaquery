@@ -5,8 +5,10 @@
 #'
 #' @param loom_filepath character() absolute path to downloaded .loom file
 #'
+#' @importFrom LoomExperiment import
+#'
 #' @return SingleCellLoomExperiment object
-.loom_to_sce <- function(loom_filepath) {
+loom_to_sce <- function(loom_filepath) {
     loom_sce <- LoomExperiment::import(loom_filepath,
                                        type ="SingleCellLoomExperiment")
     loom_sce
@@ -16,8 +18,10 @@
 #'
 #' @param h5ad_filepath character() absolute path to downloaded .h5ad file
 #'
+#' @importFrom zellkonverter readH5AD
+#'
 #' @return SingleCellExperiment object
-.h5ad_to_sce <- function(h5ad_filepath) {
+h5ad_to_sce <- function(h5ad_filepath) {
     h5ad_sce <- zellkonverter::readH5AD(h5ad_filepath)
     h5ad_sce
 }
@@ -29,8 +33,10 @@
 #'
 #' @param loom_filepath character() absolute path to downloaded .loom file
 #'
+#' @importFrom SummarizedExperiment assay
+#'
 #' @return dgCMatrix sparse matrix representation
-.loom_sparse_matrix <- function(loom_filepath) {
+loom_sparse_matrix <- function(loom_filepath) {
     loom_sce_obj <- loom_to_sce(loom_filepath)
     sparse_loom_matrix <- as(SummarizedExperiment::assay(loom_sce_obj), "dgCMatrix")
     sparse_loom_matrix
@@ -43,8 +49,10 @@
 #'
 #' @param h5ad_filepath character() absolute path to downloaded .h5ad file
 #'
+#' @importFrom SummarizedExperiment assay
+#'
 #' @return dgRMatrix sparse matrix representation
-.h5ad_sparse_matrix <- function(h5ad_filepath) {
+h5ad_sparse_matrix <- function(h5ad_filepath) {
     h5ad_sce_obj <- h5ad_to_sce(h5ad_filepath)
     sparse_h5ad_matrix <- SummarizedExperiment::assay(h5ad_sce_obj)
     sparse_h5ad_matrix
@@ -57,9 +65,11 @@
 #'
 #' @param sparse_matrix dgCMatrix sparse matrix representation
 #'
+#' @importFrom tibble tibble
+#'
 #' @return tibble with row_index, col_index, and value of each non-zero entry
 #' in the assay matrix
-.loom_sparse_mtx_to_assay_tbl <- function(sparse_matrix) {
+loom_sparse_mtx_to_assay_tbl <- function(sparse_matrix) {
     stopifnot(
         ## sparse_matrix must inherit from class dgCMatrix
         `'sparse_matrix =' must inherit from class 'dgCMatrix'` =
@@ -98,9 +108,11 @@
 #'
 #' @param sparse_matrix dgRMatrix sparse matrix representation
 #'
+#' @importFrom tibble tibble
+#'
 #' @return tibble with row_index, col_index, and value of each non-zero entry
 #' in the assay matrix
-.h5ad_sparse_mtx_to_assay_tbl <- function(sparse_matrix) {
+h5ad_sparse_mtx_to_assay_tbl <- function(sparse_matrix) {
     stopifnot(
         ## sparse_matrix must inherit from class dgRMatrix
         `'sparse_matrix =' must inherit from class 'dgRMatrix'` =
@@ -137,8 +149,12 @@
 #'
 #' @param sce SingleCellExperiment or SingleCellLoomExperiment object
 #'
+#' @importFrom dplyr as_tibble
+#' @importFrom tibble add_column
+#' @importFrom SummarizedExperiment rowData
+#'
 #' @return tibble of gene annotations
-.sce_rowdata_to_gene_tbl <- function(sce) {
+sce_rowdata_to_gene_tbl <- function(sce) {
     stopifnot(
         ## sce must be a SingleCellExperiment object
         `'sce =' must inherit from class 'SingleCellExperiment'` =
@@ -159,8 +175,12 @@
 #'
 #' @param sce SingleCellExperiment or SingleCellLoomExperiment object
 #'
+#' @importFrom dplyr as_tibble
+#' @importFrom tibble add_column
+#' @importFrom SummarizedExperiment colData
+#'
 #' @return tibble of cell annotations
-.sce_coldata_to_cell_tbl <- function(sce) {
+sce_coldata_to_cell_tbl <- function(sce) {
     stopifnot(
         ## sce must be a SingleCellExperiment object
         `'sce =' must inherit from class 'SingleCellExperiment'` =

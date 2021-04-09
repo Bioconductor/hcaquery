@@ -14,12 +14,11 @@ files_to_db(file_tbl = NULL)
 
 \item{file_path}{character() location of experiment output file}
 
+\item{fileId}{character() unique identifier of file}
+
 \item{projectTitle}{character() title of file's associated project}
 
-\item{projectId}{character() unique identifier of
-the file's associated project}
-
-\item{fileID}{character() unique identifier of file}
+\item{projectId}{character() unique identifier of the file's associated project}
 }
 \description{
 Populating database with data output of single cell experiments
