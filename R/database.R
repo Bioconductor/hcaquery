@@ -29,7 +29,7 @@ files_to_db <- function(file_tbl = NULL) {
     test_proj <- projects(file_filter)
     file_and_projIds <- file_tbl_aug %>%
         left_join(test_proj, by = "projectTitle") %>%
-        select(fileId, name, projectTitle, file_locations, projectId)
+        select("fileId", "name", "projectTitle", "file_locations", "projectId")
 
     ## apply to each pair of file path and project ID
     mapply(
@@ -51,10 +51,10 @@ files_to_db <- function(file_tbl = NULL) {
 #' @importFrom DBI dbConnect dbExistsTable
 #' @importFrom RPostgres Postgres
 #' @importFrom rstudioapi askForPassword
-#' @importFrom dplyr %>% copy_to mutate across add_row
+#' @importFrom dplyr %>% copy_to mutate across add_row tbl
 #' @importFrom tibble tibble
 #' @importFrom tools file_ext
-#' @import tidyselect
+#' @importFrom tidyselect vars_select_helpers
 .single_file_to_db <- function(file_path, fileId, projectTitle, projectId) {
     stopifnot(
         ## file_path must be a non-null character vector
@@ -126,15 +126,18 @@ files_to_db <- function(file_tbl = NULL) {
         ## conversion is needed
         assay_tbl_recast <- assay_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
-            mutate(across(tidyselect:::where(is.raw), as.logical))
+            mutate(across(tidyselect::vars_select_helpers$where(is.raw),
+                          as.logical))
 
         gene_tbl_recast <- gene_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
-            mutate(across(tidyselect:::where(is.raw), as.logical))
+            mutate(across(tidyselect::vars_select_helpers$where(is.raw),
+                          as.logical))
 
         cell_tbl_recast <- cell_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
-            mutate(across(tidyselect:::where(is.raw), as.logical))
+            mutate(across(tidyselect::vars_select_helpers$where(is.raw),
+                          as.logical))
 
         ## figure out how we want to name tables
         dplyr::copy_to(con, assay_tbl_recast,

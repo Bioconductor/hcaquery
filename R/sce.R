@@ -34,6 +34,7 @@ h5ad_to_sce <- function(h5ad_filepath) {
 #' @param loom_filepath character() absolute path to downloaded .loom file
 #'
 #' @importFrom SummarizedExperiment assay
+#' @importFrom methods as
 #'
 #' @return dgCMatrix sparse matrix representation
 loom_sparse_matrix <- function(loom_filepath) {

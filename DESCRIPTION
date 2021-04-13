@@ -27,5 +27,7 @@ Imports:
     rstudioapi,
     tibble,
     zellkonverter,
-    tidyselect
+    tidyselect,
+    dbplyr,
+    methods
 biocViews: Software, SingleCell
