@@ -11,11 +11,8 @@
 #' @export
 files_to_db <- function(file_tbl = NULL) {
     stopifnot(
-        ## input must be of class tbl_hca
-        inherits(file_tbl, "tbl_hca"),
-        ## must be a tbl_hca of files
-        `'file_tbl =' must contain columns "url", "name", "fileId` =
-            all(c("fileId", "url", "name") %in% names(file_tbl))
+        ## input must be of class files_tbl_hca
+        inherits(file_tbl, "files_tbl_hca")
     )
 
     ## download files and return location of files
@@ -55,28 +52,21 @@ files_to_db <- function(file_tbl = NULL) {
 #' @importFrom tibble tibble
 #' @importFrom tools file_ext
 #' @importFrom tidyselect vars_select_helpers
+#' @importFrom hca .is_scalar_character
 .single_file_to_db <- function(file_path, fileId, projectTitle, projectId) {
     stopifnot(
         ## file_path must be a non-null character vector
         `'file_path =' must be a non-null character vector` =
-            is.character(file_path) &&
-            length(file_path) == 1L &&
-            (!anyNA(file_path)),
+            .is_scalar_character(file_path),
         ## fileId must be a non-null character vector
         `'fileId =' must be a non-null character vector` =
-            is.character(fileId) &&
-            length(fileId) == 1L &&
-            (!anyNA(fileId)),
+            .is_scalar_character(fileId),
         ## projectTitle must be a non-null character vector
         `'projectTitle =' must be a non-null character vector` =
-            is.character(projectTitle) &&
-            length(projectTitle) == 1L &&
-            (!anyNA(projectTitle)),
-        ## fileId must be a non-null character vector
+            .is_scalar_character(projectTitle),
+        ## projectId must be a non-null character vector
         `'projectId =' must be a non-null character vector` =
-            is.character(projectId) &&
-            length(projectId) == 1L &&
-            (!anyNA(projectId))
+            .is_scalar_character(projectId)
     )
     ## connect to database
     con <- DBI::dbConnect(RPostgres::Postgres(),
