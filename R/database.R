@@ -53,6 +53,7 @@ files_to_db <- function(file_tbl = NULL) {
 #' @importFrom tools file_ext
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character
+#' @importFrom getPass getPass
 .single_file_to_db <- function(file_path, fileId, projectTitle, projectId) {
     stopifnot(
         ## file_path must be a non-null character vector
@@ -68,13 +69,31 @@ files_to_db <- function(file_tbl = NULL) {
         `'projectId =' must be a non-null character vector` =
             .is_scalar_character(projectId)
     )
+
+    ## gathering user credentials
+    hcauser <- Sys.getenv("HCA_USER")
+    if(is.null(hcauser) | hcauser == ""){
+        hcauser <- readline(prompt="Database username: ")
+    }
+    print(paste("hcauser is: ", hcauser))
+
+
+    hcapassword <-  Sys.getenv("HCA_PASSWORD")
+    if(is.null(hcapassword) | hcapassword == ""){
+        hcapassword <- getPass(msg = "Database password: ",
+                               noblank = TRUE,
+                               forcemask = FALSE)
+    }
+    print(paste("hcapassword is: ", hcapassword))
+
     ## connect to database
+    print("Establishing database connection...")
     con <- DBI::dbConnect(RPostgres::Postgres(),
                           host = "localhost",
                           dbname = "bioc_hca",
-                          user = "hca_user",
+                          user = hcauser,
                           port = 5432,
-                          password = rstudioapi::askForPassword("Database password")
+                          password = hcapassword
     )
 
     ## first, check to see if file already exists in the database as not to
@@ -88,9 +107,11 @@ files_to_db <- function(file_tbl = NULL) {
                                     collect()
         files_available <- existing_experiments_tbl$fileId
         if(!is.null(files_available) && fileId %in% files_available){
+            print(paste(fileID, " already exists in the data"))
             file_exists_in_db <- TRUE
         }
     } else {
+        print("This is the first experiment to be added to the database")
         existing_experiments_tbl <- tibble(fileId = character(),
                                            projectId = character(),
                                            projectTitle = character())

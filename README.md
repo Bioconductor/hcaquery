@@ -19,3 +19,11 @@ alias hcadb='docker exec -ti bioc-hca-db psql -U hca_user bioc_hca'
 ```
 
 - use `\dn` to list database schemas
+
+### Password Management
+- User must provide a username and password for connecting to the database
+- The program will first check to see if the appropriate environment variables
+are set in `.Renviron` (or your `.Renviron` of choice)
+for `HCA_USER` and `HCA_PASSWORD`
+- If they are not, the user will be prompted to input their username
+and password

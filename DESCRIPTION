@@ -29,5 +29,6 @@ Imports:
     zellkonverter,
     tidyselect,
     dbplyr,
-    methods
+    methods,
+    getPass
 biocViews: Software, SingleCell
