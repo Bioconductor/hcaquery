@@ -28,8 +28,8 @@ h5ad_to_sce <- function(h5ad_filepath) {
 
 #' @rdname sce
 #'
-#' @description  function to change SingleCellLoomExperiment object's assa
-#'  matrix into sparse representation (`dgCMatrix`)
+#' @description  function to change SingleCellLoomExperiment object's assay
+#'  matrix into sparse representation (typically `dgCMatrix`)
 #'
 #' @param loom_filepath character() absolute path to downloaded .loom file
 #'
@@ -46,7 +46,8 @@ loom_sparse_matrix <- function(loom_filepath) {
 #' @rdname sce
 #'
 #' @description function to change extract the existing sparse matrix
-#' representation (`dgRMatrix`) of the SingleCellExperiment object's assay
+#' representation (typically `dgRMatrix`) of the SingleCellExperiment
+#' object's assay
 #'
 #' @param h5ad_filepath character() absolute path to downloaded .h5ad file
 #'
@@ -64,13 +65,25 @@ h5ad_sparse_matrix <- function(h5ad_filepath) {
 #' @description convert a sparse matrix representation of the assay into a
 #' reformatted tibble
 #'
+#' @param sparse_matrix dgCMatrix or dgRMatrix sparse matrix representation
+sparse_mtx_to_assay_tbl <- function(sparse_matrix){
+    ## extract file assay
+    UseMethod(".sparse_matrix_to_assay_tbl")
+}
+
+#' @rdname sce
+#'
+#' @description convert a dgCMatrix sparse matrix representation of the assay
+#' into a reformatted tibble
+#'
 #' @param sparse_matrix dgCMatrix sparse matrix representation
 #'
 #' @importFrom tibble tibble
 #'
 #' @return tibble with row_index, col_index, and value of each non-zero entry
 #' in the assay matrix
-loom_sparse_mtx_to_assay_tbl <- function(sparse_matrix) {
+## dgCMatrix implementation
+.sparse_matrix_to_assay_tbl.dgCMatrix <- function(sparse_matrix) {
     stopifnot(
         ## sparse_matrix must inherit from class dgCMatrix
         `'sparse_matrix =' must inherit from class 'dgCMatrix'` =
@@ -93,19 +106,18 @@ loom_sparse_mtx_to_assay_tbl <- function(sparse_matrix) {
     ## as the sequence is made by reading the matrix
     ## bottom to top, then left to right
 
-    loom_n_per_column <-  diff(sparse_matrix@p)
-    col_index <-  rep(seq_along(loom_n_per_column), loom_n_per_column)
+    n_per_column <-  diff(sparse_matrix@p)
+    col_index <-  rep(seq_along(n_per_column), n_per_column)
     ##str(loom_col_index)
 
     # tibble is the row, column, and value for the entire matrix
-    loom_assay_tbl <- tibble(row_index, col_index, values)
-    loom_assay_tbl
+    assay_tbl <- tibble(row_index, col_index, values)
+    assay_tbl
 }
-
 #' @rdname sce
 #'
-#' @description convert a sparse matrix representation of the assay into a
-#' reformatted tibble
+#' @description convert a dgRMatrix sparse matrix representation of the assay
+#' into a reformatted tibble
 #'
 #' @param sparse_matrix dgRMatrix sparse matrix representation
 #'
@@ -113,7 +125,8 @@ loom_sparse_mtx_to_assay_tbl <- function(sparse_matrix) {
 #'
 #' @return tibble with row_index, col_index, and value of each non-zero entry
 #' in the assay matrix
-h5ad_sparse_mtx_to_assay_tbl <- function(sparse_matrix) {
+## dgRMatrix implementation
+.sparse_matrix_to_assay_tbl.dgRMatrix <- function(sparse_matrix) {
     stopifnot(
         ## sparse_matrix must inherit from class dgRMatrix
         `'sparse_matrix =' must inherit from class 'dgRMatrix'` =
@@ -134,13 +147,13 @@ h5ad_sparse_mtx_to_assay_tbl <- function(sparse_matrix) {
     ## diff between each consecutive integer in the sequence
     ## sparse_matrix@p gives number of non-zero values in each row
 
-    h5ad_n_per_column <-  diff(sparse_matrix@p)
-    row_index <-  rep(seq_along(h5ad_n_per_column), h5ad_n_per_column)
+    n_per_column <-  diff(sparse_matrix@p)
+    row_index <-  rep(seq_along(n_per_column), n_per_column)
     ##str(h5ad_col_index)
 
     # tibble is the row, column, and value for the entire matrix
-    h5ad_assay_tbl <- tibble(row_index, col_index, values)
-    h5ad_assay_tbl
+    assay_tbl <- tibble(row_index, col_index, values)
+    assay_tbl
 }
 
 #' @rdname sce

@@ -106,9 +106,7 @@ files_to_db <- function(file_tbl = NULL) {
                                 "loom" = loom_sparse_matrix(file_path),
                                 "h5ad" = h5ad_sparse_matrix(file_path))
 
-        assay_tbl <- switch(file_ext,
-                            "loom" = loom_sparse_mtx_to_assay_tbl(sparse_matrix),
-                            "h5ad" = h5ad_sparse_mtx_to_assay_tbl(sparse_matrix))
+        assay_tbl <- sparse_mtx_to_assay_tbl(sparse_matrix)
 
         gene_tbl <- sce_rowdata_to_gene_tbl(sce)
 

@@ -5,8 +5,9 @@
 \alias{h5ad_to_sce}
 \alias{loom_sparse_matrix}
 \alias{h5ad_sparse_matrix}
-\alias{loom_sparse_mtx_to_assay_tbl}
-\alias{h5ad_sparse_mtx_to_assay_tbl}
+\alias{sparse_mtx_to_assay_tbl}
+\alias{.sparse_matrix_to_assay_tbl.dgCMatrix}
+\alias{.sparse_matrix_to_assay_tbl.dgRMatrix}
 \alias{sce_rowdata_to_gene_tbl}
 \alias{sce_coldata_to_cell_tbl}
 \title{Helper functions for the processing of .loom and .h5ad files into
@@ -20,9 +21,11 @@ loom_sparse_matrix(loom_filepath)
 
 h5ad_sparse_matrix(h5ad_filepath)
 
-loom_sparse_mtx_to_assay_tbl(sparse_matrix)
+sparse_mtx_to_assay_tbl(sparse_matrix)
 
-h5ad_sparse_mtx_to_assay_tbl(sparse_matrix)
+.sparse_matrix_to_assay_tbl.dgCMatrix(sparse_matrix)
+
+.sparse_matrix_to_assay_tbl.dgRMatrix(sparse_matrix)
 
 sce_rowdata_to_gene_tbl(sce)
 
@@ -57,17 +60,21 @@ tibble of gene annotations
 tibble of cell annotations
 }
 \description{
-function to change SingleCellLoomExperiment object's assa
-matrix into sparse representation (\code{dgCMatrix})
+function to change SingleCellLoomExperiment object's assay
+matrix into sparse representation (typically \code{dgCMatrix})
 
 function to change extract the existing sparse matrix
-representation (\code{dgRMatrix}) of the SingleCellExperiment object's assay
+representation (typically \code{dgRMatrix}) of the SingleCellExperiment
+object's assay
 
 convert a sparse matrix representation of the assay into a
 reformatted tibble
 
-convert a sparse matrix representation of the assay into a
-reformatted tibble
+convert a dgCMatrix sparse matrix representation of the assay
+into a reformatted tibble
+
+convert a dgRMatrix sparse matrix representation of the assay
+into a reformatted tibble
 
 function to change SingleCellExperiment or
 SingleCellLoomExperiment object's \code{rowData} into a gene annotation table
