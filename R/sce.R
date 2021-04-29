@@ -164,7 +164,7 @@ sce_rowdata_to_gene_tbl <- function(sce) {
 
     ## add row_index as a column
     gene_tbl <- dplyr::as_tibble(rowData(sce))
-    gene_tbl %>% tibble::add_column(row_index = 1:nrow(gene_tbl),
+    gene_tbl |> tibble::add_column(row_index = 1:nrow(gene_tbl),
                             .before = colnames(gene_tbl)[1])
     gene_tbl
 }
@@ -190,7 +190,7 @@ sce_coldata_to_cell_tbl <- function(sce) {
 
     ## add col_index as a column
     cell_tbl <- dplyr::as_tibble(colData(sce))
-    cell_tbl %>% tibble::add_column(col_index = 1:nrow(cell_tbl),
+    cell_tbl |> tibble::add_column(col_index = 1:nrow(cell_tbl),
                                     .before = colnames(cell_tbl)[1])
     cell_tbl
 }

@@ -4,7 +4,7 @@
 #'
 #' @param file_tbl tbl_hca tibble of files as returned by hca::files()
 #'
-#' @importFrom dplyr %>% select left_join
+#' @importFrom dplyr select left_join
 #' @importFrom tibble add_column
 #' @importFrom hca filters files_download projects
 #'
@@ -17,15 +17,15 @@ files_to_db <- function(file_tbl = NULL) {
 
     ## download files and return location of files
     file_locations <- files_download(file_tbl)
-    file_tbl_aug <- file_tbl %>%
+    file_tbl_aug <- file_tbl |>
         tibble::add_column(file_locations = file_locations)
 
     ## generate a tibble of file locations and associated projectIds
     project_titles <- file_tbl_aug$projectTitle
     file_filter <- filters(projectTitle = list(is = project_titles))
     test_proj <- projects(file_filter)
-    file_and_projIds <- file_tbl_aug %>%
-        left_join(test_proj, by = "projectTitle") %>%
+    file_and_projIds <- file_tbl_aug |>
+        left_join(test_proj, by = "projectTitle") |>
         select("fileId", "name", "projectTitle", "file_locations", "projectId")
 
     ## apply to each pair of file path and project ID
@@ -48,7 +48,7 @@ files_to_db <- function(file_tbl = NULL) {
 #' @importFrom DBI dbConnect dbExistsTable
 #' @importFrom RPostgres Postgres
 #' @importFrom rstudioapi askForPassword
-#' @importFrom dplyr %>% copy_to mutate across add_row tbl
+#' @importFrom dplyr copy_to mutate across add_row tbl collect
 #' @importFrom tibble tibble
 #' @importFrom tools file_ext
 #' @importFrom tidyselect vars_select_helpers
@@ -79,11 +79,13 @@ files_to_db <- function(file_tbl = NULL) {
 
     ## first, check to see if file already exists in the database as not to
     ## duplicate data
-    overview_table_exists <- con %>% DBI::dbExistsTable("experiment_overviews")
+    overview_table_exists <- con |> DBI::dbExistsTable("experiment_overviews")
     file_exists_in_db <- FALSE
 
     if(overview_table_exists){
-        existing_experiments_tbl <- con %>% tbl("experiment_overviews")
+        existing_experiments_tbl <- con |>
+                                    tbl("experiment_overviews") |>
+                                    collect()
         files_available <- existing_experiments_tbl$fileId
         if(!is.null(files_available) && fileId %in% files_available){
             file_exists_in_db <- TRUE
@@ -114,17 +116,17 @@ files_to_db <- function(file_tbl = NULL) {
 
         ## if any column in any table is of type "raw" i.e. byte data
         ## conversion is needed
-        assay_tbl_recast <- assay_tbl %>%
+        assay_tbl_recast <- assay_tbl |>
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
                           as.logical))
 
-        gene_tbl_recast <- gene_tbl %>%
+        gene_tbl_recast <- gene_tbl |>
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
                           as.logical))
 
-        cell_tbl_recast <- cell_tbl %>%
+        cell_tbl_recast <- cell_tbl |>
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
                           as.logical))
@@ -141,9 +143,10 @@ files_to_db <- function(file_tbl = NULL) {
                        temporary = FALSE)
 
         ## add details to overview table
-        existing_experiments_tbl %>% add_row(fileId = fileId,
-                                             projectId = projectId,
-                                             projectTitle = projectTitle)
+        existing_experiments_tbl <- existing_experiments_tbl |>
+                                    add_row(fileId = fileId,
+                                            projectId = projectId,
+                                            projectTitle = projectTitle)
         dplyr::copy_to(con, existing_experiments_tbl,
                        name = "experiment_overviews",
                        temporary = FALSE,
