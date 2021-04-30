@@ -7,7 +7,7 @@
 \usage{
 files_to_db(file_tbl = NULL)
 
-.single_file_to_db(file_path, fileId, projectTitle, projectId)
+.single_file_to_db(file_path, fileId, version, projectTitle, projectId)
 }
 \arguments{
 \item{file_tbl}{tbl_hca tibble of files as returned by hca::files()}
@@ -16,9 +16,12 @@ files_to_db(file_tbl = NULL)
 
 \item{fileId}{character() unique identifier of file}
 
+\item{version}{character() file version}
+
 \item{projectTitle}{character() title of file's associated project}
 
-\item{projectId}{character() unique identifier of the file's associated project}
+\item{projectId}{character() unique identifier of the file's
+associated project}
 }
 \description{
 Populating database with data output of single cell experiments

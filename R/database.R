@@ -4,7 +4,7 @@
 #'
 #' @param file_tbl tbl_hca tibble of files as returned by hca::files()
 #'
-#' @importFrom dplyr select left_join
+#' @importFrom dplyr %>% select left_join
 #' @importFrom tibble add_column
 #' @importFrom hca filters files_download projects
 #'
@@ -17,22 +17,24 @@ files_to_db <- function(file_tbl = NULL) {
 
     ## download files and return location of files
     file_locations <- files_download(file_tbl)
-    file_tbl_aug <- file_tbl |>
+    file_tbl_aug <- file_tbl %>%
         tibble::add_column(file_locations = file_locations)
 
     ## generate a tibble of file locations and associated projectIds
     project_titles <- file_tbl_aug$projectTitle
     file_filter <- filters(projectTitle = list(is = project_titles))
     test_proj <- projects(file_filter)
-    file_and_projIds <- file_tbl_aug |>
-        left_join(test_proj, by = "projectTitle") |>
-        select("fileId", "name", "projectTitle", "file_locations", "projectId")
+    file_and_projIds <- file_tbl_aug %>%
+        left_join(test_proj, by = "projectTitle") %>%
+        select("fileId", "version", "name", "projectTitle",
+               "file_locations", "projectId")
 
     ## apply to each pair of file path and project ID
     mapply(
         .single_file_to_db,
         file_and_projIds$file_locations,
         file_and_projIds$fileId,
+        file_and_projIds$version,
         file_and_projIds$projectTitle,
         file_and_projIds$projectId
     )
@@ -42,19 +44,24 @@ files_to_db <- function(file_tbl = NULL) {
 #'
 #' @param file_path character() location of experiment output file
 #' @param fileId character() unique identifier of file
+#' @param version character() file version
 #' @param projectTitle character() title of file's associated project
-#' @param projectId character() unique identifier of the file's associated project
+#' @param projectId character() unique identifier of the file's
+#' associated project
 #'
-#' @importFrom DBI dbConnect dbExistsTable
+#' @importFrom DBI dbConnect dbExistsTable dbDisconnect
 #' @importFrom RPostgres Postgres
-#' @importFrom rstudioapi askForPassword
-#' @importFrom dplyr copy_to mutate across add_row tbl collect
+#' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter
 #' @importFrom tibble tibble
 #' @importFrom tools file_ext
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character
 #' @importFrom getPass getPass
-.single_file_to_db <- function(file_path, fileId, projectTitle, projectId) {
+.single_file_to_db <- function(file_path,
+                               fileId,
+                               version,
+                               projectTitle,
+                               projectId) {
     stopifnot(
         ## file_path must be a non-null character vector
         `'file_path =' must be a non-null character vector` =
@@ -62,6 +69,9 @@ files_to_db <- function(file_tbl = NULL) {
         ## fileId must be a non-null character vector
         `'fileId =' must be a non-null character vector` =
             .is_scalar_character(fileId),
+        ## version must be a non-null character vector
+        `'version =' must be a non-null character vector` =
+            .is_scalar_character(version),
         ## projectTitle must be a non-null character vector
         `'projectTitle =' must be a non-null character vector` =
             .is_scalar_character(projectTitle),
@@ -72,23 +82,23 @@ files_to_db <- function(file_tbl = NULL) {
 
     ## gathering user credentials
     hcauser <- Sys.getenv("HCA_USER")
-    if(is.null(hcauser) | hcauser == ""){
+    if(is.null(hcauser) || hcauser == ""){
         hcauser <- readline(prompt="Database username: ")
     }
-    print(paste("hcauser is: ", hcauser))
+    ## print(paste("hcauser is: ", hcauser))
 
 
     hcapassword <-  Sys.getenv("HCA_PASSWORD")
-    if(is.null(hcapassword) | hcapassword == ""){
+    if(is.null(hcapassword) || hcapassword == ""){
         hcapassword <- getPass(msg = "Database password: ",
                                noblank = TRUE,
                                forcemask = FALSE)
     }
-    print(paste("hcapassword is: ", hcapassword))
+    ## print(paste("hcapassword is: ", hcapassword))
 
     ## connect to database
     print("Establishing database connection...")
-    con <- DBI::dbConnect(RPostgres::Postgres(),
+    db_connection <- DBI::dbConnect(RPostgres::Postgres(),
                           host = "localhost",
                           dbname = "bioc_hca",
                           user = hcauser,
@@ -98,23 +108,35 @@ files_to_db <- function(file_tbl = NULL) {
 
     ## first, check to see if file already exists in the database as not to
     ## duplicate data
-    overview_table_exists <- con |> DBI::dbExistsTable("experiment_overviews")
+    overview_table_exists <- db_connection %>%
+                             DBI::dbExistsTable("experiment_overviews")
     file_exists_in_db <- FALSE
 
     if(overview_table_exists){
-        existing_experiments_tbl <- con |>
-                                    tbl("experiment_overviews") |>
+        existing_experiments_tbl <- db_connection %>%
+                                    tbl("experiment_overviews") %>%
                                     collect()
-        files_available <- existing_experiments_tbl$fileId
+        files_available <- existing_experiments_tbl$file_id
+        ## print("Files currently in db are: ")
+        ## print(files_available)
         if(!is.null(files_available) && fileId %in% files_available){
-            print(paste(fileID, " already exists in the data"))
-            file_exists_in_db <- TRUE
+            ## get instance of file already in database and check version
+            existing_version <- existing_experiments_tbl %>%
+                                    filter(file_id == fileId) %>%
+                                    select(version) %>%
+                                    as.character()
+            if(existing_version == version){
+                print(paste(fileId, " with version ",
+                            version, " already exists in the data"))
+                file_exists_in_db <- TRUE
+            }
         }
     } else {
         print("This is the first experiment to be added to the database")
-        existing_experiments_tbl <- tibble(fileId = character(),
-                                           projectId = character(),
-                                           projectTitle = character())
+        existing_experiments_tbl <- tibble(file_id = character(),
+                                           version = character(),
+                                           project_id = character(),
+                                           project_title = character())
     }
 
     ## if file does not already exist in the database, proceed with adding it
@@ -135,40 +157,43 @@ files_to_db <- function(file_tbl = NULL) {
 
         ## if any column in any table is of type "raw" i.e. byte data
         ## conversion is needed
-        assay_tbl_recast <- assay_tbl |>
+        assay_tbl_recast <- assay_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
                           as.logical))
 
-        gene_tbl_recast <- gene_tbl |>
+        gene_tbl_recast <- gene_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
                           as.logical))
 
-        cell_tbl_recast <- cell_tbl |>
+        cell_tbl_recast <- cell_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
                           as.logical))
 
         ## figure out how we want to name tables
-        dplyr::copy_to(con, assay_tbl_recast,
+        dplyr::copy_to(db_connection, assay_tbl_recast,
                        paste(c(fileId, "assay"), collapse = "_"),
                        temporary = FALSE)
-        dplyr::copy_to(con, gene_tbl_recast,
+        dplyr::copy_to(db_connection, gene_tbl_recast,
                        paste(c(fileId, "gene"), collapse = "_"),
                        temporary = FALSE)
-        dplyr::copy_to(con, cell_tbl_recast,
+        dplyr::copy_to(db_connection, cell_tbl_recast,
                        paste(c(fileId, "cell"), collapse = "_"),
                        temporary = FALSE)
 
         ## add details to overview table
-        existing_experiments_tbl <- existing_experiments_tbl |>
-                                    add_row(fileId = fileId,
-                                            projectId = projectId,
-                                            projectTitle = projectTitle)
-        dplyr::copy_to(con, existing_experiments_tbl,
+        existing_experiments_tbl <- existing_experiments_tbl %>%
+                                    add_row(file_id = fileId,
+                                            version = version,
+                                            project_id = projectId,
+                                            project_title = projectTitle)
+        dplyr::copy_to(db_connection, existing_experiments_tbl,
                        name = "experiment_overviews",
                        temporary = FALSE,
                        overwrite = TRUE)
+
+        DBI::dbDisconnect(db_connection)
     }
 }
