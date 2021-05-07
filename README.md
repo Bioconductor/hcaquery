@@ -27,3 +27,26 @@ are set in `.Renviron` (or your `.Renviron` of choice)
 for `HCA_USER` and `HCA_PASSWORD`
 - If they are not, the user will be prompted to input their username
 and password
+
+### Examples
+```
+library(devtools)
+devtools::load_all()
+library(hca)
+```
+- loading the two smallest `.loom` files
+```
+loom_filter <- hca::filters(fileFormat = list(is = c("loom")))
+loom_tbl <- hca::files(filters = loom_filter,
+                            size = 2, sort = "fileSize", order = "asc")
+files_to_db(loom_tbl)
+```
+- loading the two smallest `.h5ad` files
+***This example will fail due to the format of the second file***
+```
+h5ad_filter <- hca::filters(fileFormat = list(is = c("h5ad")))
+h5ad_tbl <- hca::files(filters = h5ad_filter,
+                            size = 2, sort = "fileSize", order = "asc")
+                            
+files_to_db(h5ad_tbl)
+```
