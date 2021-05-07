@@ -56,7 +56,7 @@ loom_sparse_matrix <- function(loom_filepath) {
 #' @return dgRMatrix sparse matrix representation
 h5ad_sparse_matrix <- function(h5ad_filepath) {
     h5ad_sce_obj <- h5ad_to_sce(h5ad_filepath)
-    sparse_h5ad_matrix <- SummarizedExperiment::assay(h5ad_sce_obj)
+    sparse_h5ad_matrix <- as(SummarizedExperiment::assay(h5ad_sce_obj), "dgRMatrix")
     sparse_h5ad_matrix
 }
 
@@ -175,10 +175,25 @@ sce_rowdata_to_gene_tbl <- function(sce) {
         inherits(sce, "SingleCellExperiment")
     )
 
-    ## add row_index as a column
-    gene_tbl <- dplyr::as_tibble(rowData(sce))
-    gene_tbl %>% tibble::add_column(row_index = 1:nrow(gene_tbl),
-                            .before = colnames(gene_tbl)[1])
+    ## get number of genes to use as row index
+    num_genes <- dim(sce)[1]
+
+    # if rowData exists, start table with that
+    if(dim(rowData(sce))[2] > 0){
+        gene_tbl <- dplyr::as_tibble(rowData(sce))
+        ## add row index
+        gene_tbl %>%
+            tibble::add_column(row_index = 1:num_genes)
+    ## else, start table with just row index
+    } else {
+        gene_tbl <- dplyr::as_tibble(list(row_index = 1:num_genes))
+    }
+    # if rownames exists, add
+    if(length(rownames(sce)) > 0){
+        gene_tbl %>%
+            tibble::add_column(rnames = rownames(sce))
+    }
+
     gene_tbl
 }
 
@@ -201,9 +216,24 @@ sce_coldata_to_cell_tbl <- function(sce) {
             inherits(sce, "SingleCellExperiment")
     )
 
-    ## add col_index as a column
-    cell_tbl <- dplyr::as_tibble(colData(sce))
-    cell_tbl %>% tibble::add_column(col_index = 1:nrow(cell_tbl),
-                                    .before = colnames(cell_tbl)[1])
+    ## get number of cells to use as row index
+    num_cells <- dim(sce)[2]
+
+    # if colData exists, start table with that
+    if(dim(colData(sce))[2] > 0){
+        cell_tbl <- dplyr::as_tibble(colData(sce))
+        ## add col index
+        cell_tbl %>%
+            tibble::add_column(col_index = 1:num_cells)
+        ## else, start table with just col index
+    } else {
+        cell_tbl <- dplyr::as_tibble(list(col_index = 1:num_cells))
+    }
+    # if colnames exists, add
+    if(length(colnames(sce)) > 0){
+        cell_tbl %>%
+            tibble::add_column(cnames = colnames(sce))
+    }
+
     cell_tbl
 }

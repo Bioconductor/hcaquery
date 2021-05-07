@@ -42,7 +42,6 @@ loom_tbl <- hca::files(filters = loom_filter,
 files_to_db(loom_tbl)
 ```
 - loading the two smallest `.h5ad` files
-***This example will fail due to the format of the second file***
 ```
 h5ad_filter <- hca::filters(fileFormat = list(is = c("h5ad")))
 h5ad_tbl <- hca::files(filters = h5ad_filter,
