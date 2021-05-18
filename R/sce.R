@@ -179,21 +179,22 @@ sce_rowdata_to_gene_tbl <- function(sce) {
     num_genes <- dim(sce)[1]
 
     # if rowData exists, start table with that
-    if(dim(rowData(sce))[2] > 0){
+    if(dim(rowData(sce))[2] > 0) {
         gene_tbl <- dplyr::as_tibble(rowData(sce))
         ## add row index
-        gene_tbl %>%
-            tibble::add_column(row_index = 1:num_genes)
+        gene_tbl <- gene_tbl %>%
+            tibble::add_column(row_index = 1:num_genes, .before = 1)
     ## else, start table with just row index
     } else {
         gene_tbl <- dplyr::as_tibble(list(row_index = 1:num_genes))
     }
     # if rownames exists, add
-    if(length(rownames(sce)) > 0){
+    if(length(rownames(sce)) > 0) {
         gene_tbl %>%
             tibble::add_column(rnames = rownames(sce))
     }
-
+    ##print("Gene table looks like:")
+    ##print(head(gene_tbl))
     gene_tbl
 }
 
@@ -220,20 +221,22 @@ sce_coldata_to_cell_tbl <- function(sce) {
     num_cells <- dim(sce)[2]
 
     # if colData exists, start table with that
-    if(dim(colData(sce))[2] > 0){
+    if(dim(colData(sce))[2] > 0) {
         cell_tbl <- dplyr::as_tibble(colData(sce))
         ## add col index
-        cell_tbl %>%
-            tibble::add_column(col_index = 1:num_cells)
+        cell_tbl <- cell_tbl %>%
+            tibble::add_column(col_index = 1:num_cells, .before = 1)
         ## else, start table with just col index
     } else {
         cell_tbl <- dplyr::as_tibble(list(col_index = 1:num_cells))
     }
     # if colnames exists, add
-    if(length(colnames(sce)) > 0){
+    if(length(colnames(sce)) > 0) {
         cell_tbl %>%
             tibble::add_column(cnames = colnames(sce))
     }
 
+    ##print("Cell tibble looks like:")
+    ##print(head(cell_tbl))
     cell_tbl
 }

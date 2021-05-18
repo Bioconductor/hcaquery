@@ -46,6 +46,6 @@ files_to_db(loom_tbl)
 h5ad_filter <- hca::filters(fileFormat = list(is = c("h5ad")))
 h5ad_tbl <- hca::files(filters = h5ad_filter,
                             size = 2, sort = "fileSize", order = "asc")
-                            
+
 files_to_db(h5ad_tbl)
 ```

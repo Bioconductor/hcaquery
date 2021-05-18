@@ -31,7 +31,7 @@ files_to_db <- function(file_tbl = NULL) {
 
     ## apply to each pair of file path and project ID
     mapply(
-        .single_file_to_db,
+        .single_file_to_db_compact,
         file_and_projIds$file_locations,
         file_and_projIds$fileId,
         file_and_projIds$version,
@@ -57,11 +57,11 @@ files_to_db <- function(file_tbl = NULL) {
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character
 #' @importFrom getPass getPass
-.single_file_to_db <- function(file_path,
-                               fileId,
-                               version,
-                               projectTitle,
-                               projectId) {
+.single_file_to_db_compact <- function(file_path,
+                                        fileId,
+                                        version,
+                                        projectTitle,
+                                        projectId) {
     stopifnot(
         ## file_path must be a non-null character vector
         `'file_path =' must be a non-null character vector` =
@@ -99,32 +99,41 @@ files_to_db <- function(file_tbl = NULL) {
     ## connect to database
     print("Establishing database connection...")
     db_connection <- DBI::dbConnect(RPostgres::Postgres(),
-                          host = "localhost",
-                          dbname = "bioc_hca",
-                          user = hcauser,
-                          port = 5432,
-                          password = hcapassword
+                                    host = "localhost",
+                                    dbname = "bioc_hca",
+                                    user = hcauser,
+                                    port = 5432,
+                                    password = hcapassword
     )
 
     ## first, check to see if file already exists in the database as not to
     ## duplicate data
     overview_table_exists <- db_connection %>%
-                             DBI::dbExistsTable("experiment_overviews")
+        DBI::dbExistsTable("experiment_overviews")
     file_exists_in_db <- FALSE
 
     if(overview_table_exists){
         existing_experiments_tbl <- db_connection %>%
-                                    tbl("experiment_overviews") %>%
-                                    collect()
+            tbl("experiment_overviews") %>%
+            collect()
+        existing_assays_tbl <- db_connection %>%
+            tbl("assays_tbl") %>%
+            collect()
+        existing_genes_tbl <- db_connection %>%
+            tbl("genes_tbl") %>%
+            collect()
+        existing_cells_tbl <- db_connection %>%
+            tbl("cells_tbl") %>%
+            collect()
         files_available <- existing_experiments_tbl$file_id
         ## print("Files currently in db are: ")
         ## print(files_available)
         if(!is.null(files_available) && fileId %in% files_available){
             ## get instance of file already in database and check version
             existing_version <- existing_experiments_tbl %>%
-                                    filter(file_id == fileId) %>%
-                                    select(version) %>%
-                                    as.character()
+                filter(file_id == fileId) %>%
+                select(version) %>%
+                as.character()
             if(existing_version == version){
                 print(paste(fileId, " with version ",
                             version, " already exists in the data"))
@@ -137,9 +146,93 @@ files_to_db <- function(file_tbl = NULL) {
                                            version = character(),
                                            project_id = character(),
                                            project_title = character())
+
+        existing_assays_tbl <- tibble(row_index = numeric(),
+                                      col_index = numeric(),
+                                      values = numeric())
+
+        existing_genes_tbl <- tibble(row_index = integer(),
+                                     gene = character(),
+                                     antisense_reads = numeric(),
+                                     duplicate_reads = numeric(),
+                                     ensembl_ids = character(),
+                                     fragments_per_molecule = numeric(),
+                                     fragments_with_single_read_evidence = numeric(),
+                                     gene_names = character(),
+                                     genomic_read_quality_mean = numeric(),
+                                     genomic_read_quality_variance = numeric(),
+                                     genomic_reads_fraction_bases_quality_above_30_mean = numeric(),
+                                     genomic_reads_fraction_bases_quality_above_30_variance = numeric(),
+                                     molecule_barcode_fraction_bases_above_30_mean = numeric(),
+                                     molecule_barcode_fraction_bases_above_30_variance = numeric(),
+                                     molecules_with_single_read_evidence = numeric(),
+                                     n_fragments = numeric(),
+                                     n_molecules = numeric(),
+                                     n_reads = numeric(),
+                                     noise_reads = numeric(),
+                                     number_cells_detected_multiple = numeric(),
+                                     number_cells_expressing = numeric(),
+                                     perfect_molecule_barcodes = numeric(),
+                                     reads_mapped_exonic = numeric(),
+                                     reads_mapped_intronic = numeric(),
+                                     reads_mapped_multiple = numeric(),
+                                     reads_mapped_uniquely = numeric(),
+                                     reads_mapped_utr = numeric(),
+                                     reads_per_fragment = numeric(),
+                                     reads_per_molecule = numeric(),
+                                     spliced_reads = numeric(),
+                                     file_id = character())
+
+        existing_cells_tbl <- tibble(col_index = integer(),
+                                     cell_id = character(),
+                                     antisense_reads = integer(),
+                                     cell_barcode_fraction_bases_above_30_mean = numeric(),
+                                     cell_barcode_fraction_bases_above_30_variance = numeric(),
+                                     cell_names = character(),
+                                     duplicate_reads = integer(),
+                                     emptydrops_FDR = numeric(),
+                                     emptydrops_IsCell = logical(),
+                                     emptydrops_Limited = logical(),
+                                     emptydrops_LogProb = numeric(),
+                                     emptydrops_PValue = numeric(),
+                                     emptydrops_Total = integer(),
+                                     fragments_per_molecule = numeric(),
+                                     fragments_with_single_read_evidence = integer(),
+                                     genes_detected_multiple_observations = integer(),
+                                     genomic_read_quality_mean = numeric(),
+                                     genomic_read_quality_variance = numeric(),
+                                     genomic_reads_fraction_bases_quality_above_30_mean = numeric(),
+                                     genomic_reads_fraction_bases_quality_above_30_variance = numeric(),
+                                     input_id = character(),
+                                     molecule_barcode_fraction_bases_above_30_mean = numeric(),
+                                     molecule_barcode_fraction_bases_above_30_variance = numeric(),
+                                     molecules_with_single_read_evidence = integer(),
+                                     n_fragments = integer(),
+                                     n_genes = integer(),
+                                     n_mitochondrial_genes = integer(),
+                                     n_mitochondrial_molecules = integer(),
+                                     n_molecules = integer(),
+                                     n_reads = integer(),
+                                     noise_reads = integer(),
+                                     pct_mitochondrial_molecules = numeric(),
+                                     perfect_cell_barcodes = integer(),
+                                     perfect_molecule_barcodes = integer(),
+                                     reads_mapped_exonic = integer(),
+                                     reads_mapped_intergenic = integer(),
+                                     reads_mapped_intronic = integer(),
+                                     reads_mapped_multiple = integer(),
+                                     reads_mapped_too_many_loci = integer(),
+                                     reads_mapped_uniquely = integer(),
+                                     reads_mapped_utr = integer(),
+                                     reads_per_fragment = numeric(),
+                                     reads_unmapped = integer(),
+                                     spliced_reads = integer(),
+                                     file_id = character())
     }
 
-    ## if file does not already exist in the database, proceed with adding it
+    ## if file does not already exist in the database, proceed with appending
+    ## it to the gene annotation and cell annotation tables
+    ## https://dplyr.tidyverse.org/reference/bind.html
     if(!file_exists_in_db){
         file_ext <- tools::file_ext(file_path)
         sce <- switch(file_ext,
@@ -149,46 +242,62 @@ files_to_db <- function(file_tbl = NULL) {
                                 "loom" = loom_sparse_matrix(file_path),
                                 "h5ad" = h5ad_sparse_matrix(file_path))
 
-        assay_tbl <- sparse_mtx_to_assay_tbl(sparse_matrix)
+        new_assay_tbl <- sparse_mtx_to_assay_tbl(sparse_matrix)
 
-        gene_tbl <- sce_rowdata_to_gene_tbl(sce)
+        new_gene_tbl <- sce_rowdata_to_gene_tbl(sce)
 
-        cell_tbl <- sce_coldata_to_cell_tbl(sce)
+        new_cell_tbl <- sce_coldata_to_cell_tbl(sce)
 
         ## if any column in any table is of type "raw" i.e. byte data
         ## conversion is needed
-        assay_tbl_recast <- assay_tbl %>%
+        new_assay_tbl_recast <- new_assay_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
-                          as.logical))
+                          as.logical)) %>%
+            add_column(file_id = fileId)
 
-        gene_tbl_recast <- gene_tbl %>%
+        new_gene_tbl_recast <- new_gene_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
-                          as.logical))
+                          as.logical)) %>%
+            add_column(file_id = fileId) %>%
+            dplyr::rename(gene = Gene)
 
-        cell_tbl_recast <- cell_tbl %>%
+        new_cell_tbl_recast <- new_cell_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
-                          as.logical))
+                          as.logical)) %>%
+            add_column(file_id = fileId) %>%
+            dplyr::rename(cell_id = CellID)
 
-        ## figure out how we want to name tables
-        dplyr::copy_to(db_connection, assay_tbl_recast,
-                       paste(c(fileId, "assay"), collapse = "_"),
-                       temporary = FALSE)
-        dplyr::copy_to(db_connection, gene_tbl_recast,
-                       paste(c(fileId, "gene"), collapse = "_"),
-                       temporary = FALSE)
-        dplyr::copy_to(db_connection, cell_tbl_recast,
-                       paste(c(fileId, "cell"), collapse = "_"),
-                       temporary = FALSE)
+        ## appending to existing tables
+        existing_assays_tbl <- existing_assays_tbl %>%
+            bind_rows(new_assay_tbl_recast)
+        dplyr::copy_to(db_connection, existing_assays_tbl,
+                       name = "assays_tbl",
+                       temporary = FALSE,
+                       overwrite = TRUE)
+
+        existing_genes_tbl <- existing_genes_tbl %>%
+            bind_rows(new_gene_tbl_recast)
+        dplyr::copy_to(db_connection, existing_genes_tbl,
+                       name = "genes_tbl",
+                       temporary = FALSE,
+                       overwrite = TRUE)
+
+        existing_cells_tbl <- existing_cells_tbl %>%
+            bind_rows(new_cell_tbl_recast)
+        dplyr::copy_to(db_connection, existing_cells_tbl,
+                       name = "cells_tbl",
+                       temporary = FALSE,
+                       overwrite = TRUE)
 
         ## add details to overview table
         existing_experiments_tbl <- existing_experiments_tbl %>%
-                                    add_row(file_id = fileId,
-                                            version = version,
-                                            project_id = projectId,
-                                            project_title = projectTitle)
+            add_row(file_id = fileId,
+                    version = version,
+                    project_id = projectId,
+                    project_title = projectTitle)
         dplyr::copy_to(db_connection, existing_experiments_tbl,
                        name = "experiment_overviews",
                        temporary = FALSE,
