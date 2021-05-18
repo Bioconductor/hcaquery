@@ -2,19 +2,10 @@
 % Please edit documentation in R/database.R
 \name{files_to_db}
 \alias{files_to_db}
-\alias{.single_file_to_db_separate}
 \alias{.single_file_to_db_compact}
 \title{Populating database with data output of single cell experiments}
 \usage{
 files_to_db(file_tbl = NULL)
-
-.single_file_to_db_separate(
-  file_path,
-  fileId,
-  version,
-  projectTitle,
-  projectId
-)
 
 .single_file_to_db_compact(file_path, fileId, version, projectTitle, projectId)
 }

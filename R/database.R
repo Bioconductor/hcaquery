@@ -233,7 +233,7 @@ files_to_db <- function(file_tbl = NULL) {
     ## if file does not already exist in the database, proceed with appending
     ## it to the gene annotation and cell annotation tables
     ## https://dplyr.tidyverse.org/reference/bind.html
-    if(!file_exists_in_db){
+    if(!file_exists_in_db) {
         file_ext <- tools::file_ext(file_path)
         sce <- switch(file_ext,
                       "loom" = loom_to_sce(file_path),
