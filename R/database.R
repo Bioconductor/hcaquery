@@ -1,3 +1,87 @@
+.database_user <- local({
+    ## `local()` creates an environment 'local' to the function, so
+    ## that `database_user` is available for reading and writing for
+    ## the duration of the session. We use this so that we only need
+    ## to enter the username only once per session.
+
+    database_user <- "" # user not yet provided
+
+    function(user = "") {
+        stopifnot(.is_scalar_character(user))
+
+        ## determine user from the argument, or the system variable,
+        ## or a previous value, or prompt, in that order
+        if (!nzchar(user))
+            user <- Sys.getenv("HCA_USER")
+        if (!nzchar(user))
+            user <- database_user
+        if (!nzchar(user)) {
+            user <- readline(prompt="Database username: ")
+            if (!nzchar(user))
+                stop("no username entered")
+        }
+
+        ## remember the user as database_user for next time, and
+        ## return the user (without displaying)
+        database_user <<- user
+    }
+})
+
+#' @importFrom getPass getPass
+.database_password <- local({
+    ## `local()` creates an environment 'local' to the function, so
+    ## that `database_user` is available for reading and writing for
+    ## the duration of the session. We use this so that we only need
+    ## to enter the username only once per session.
+
+    database_password <- "" # password not yet provided
+
+    function(password = "") {
+        stopifnot(.is_scalar_character(password))
+
+        ## determine password from the argument, or the system variable,
+        ## or a previous value, or prompt, in that order
+        if (!nzchar(password))
+            password <- Sys.getenv("HCA_PASSWORD")
+        if (!nzchar(password))
+            password <- database_password
+        if (!nzchar(password)) {
+            password <- getPass(msg = "Database password: ",
+                                noblank = TRUE,
+                                forcemask = FALSE)
+            if (is.null(password))
+                stop("no password entered")
+        }
+
+        ## remember the password as database_password for next time,
+        ## and return the password (without displaying)
+        database_password <<- password
+    }
+})
+
+#' @importFrom DBI dbConnect
+#' @importFrom RPostgres Postgres
+.database_connection <- function(user = "", password = "") {
+    stopifnot(
+        .is_scalar_character(user),
+        .is_scalar_character(password)
+    )
+
+    ## gathering user credentials
+    hcauser <- .database_user(user)
+    hcapassword <-  .database_password(password)
+
+    message("Establishing database connection...")
+    dbConnect(
+        RPostgres::Postgres(),
+        host = "localhost",
+        dbname = "bioc_hca",
+        user = hcauser,
+        port = 5432,
+        password = hcapassword
+    )
+}
+
 #' @title Populating database with data output of single cell experiments
 #'
 #' @rdname database
@@ -49,14 +133,12 @@ files_to_db <- function(file_tbl = NULL) {
 #' @param projectId character() unique identifier of the file's
 #' associated project
 #'
-#' @importFrom DBI dbConnect dbExistsTable dbDisconnect
-#' @importFrom RPostgres Postgres
+#' @importFrom DBI dbExistsTable dbDisconnect
 #' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter
 #' @importFrom tibble tibble
 #' @importFrom tools file_ext
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character
-#' @importFrom getPass getPass
 .single_file_to_db_compact <- function(file_path,
                                         fileId,
                                         version,
@@ -80,31 +162,8 @@ files_to_db <- function(file_tbl = NULL) {
             .is_scalar_character(projectId)
     )
 
-    ## gathering user credentials
-    hcauser <- Sys.getenv("HCA_USER")
-    if(is.null(hcauser) || hcauser == ""){
-        hcauser <- readline(prompt="Database username: ")
-    }
-    ## print(paste("hcauser is: ", hcauser))
-
-
-    hcapassword <-  Sys.getenv("HCA_PASSWORD")
-    if(is.null(hcapassword) || hcapassword == ""){
-        hcapassword <- getPass(msg = "Database password: ",
-                               noblank = TRUE,
-                               forcemask = FALSE)
-    }
-    ## print(paste("hcapassword is: ", hcapassword))
-
     ## connect to database
-    print("Establishing database connection...")
-    db_connection <- DBI::dbConnect(RPostgres::Postgres(),
-                                    host = "localhost",
-                                    dbname = "bioc_hca",
-                                    user = hcauser,
-                                    port = 5432,
-                                    password = hcapassword
-    )
+    db_connection <- .database_connection()
 
     ## first, check to see if file already exists in the database as not to
     ## duplicate data

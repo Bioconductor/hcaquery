@@ -20,13 +20,11 @@ available_tables <- function() {
 #'
 #' @param table_name character() name of database table to be described
 #'
-#' @importFrom DBI dbConnect dbExistsTable dbDisconnect
-#' @importFrom RPostgres Postgres
+#' @importFrom DBI dbExistsTable dbDisconnect
 #' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter
 #' @importFrom tibble tibble
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character
-#' @importFrom getPass getPass
 #'
 #' @examples table_description("genes_tbl")
 #'
@@ -38,31 +36,9 @@ table_description <- function(table_name) {
             .is_scalar_character(table_name) &&
             (table_name %in% available_tables())
     )
-    ## gathering user credentials
-    hcauser <- Sys.getenv("HCA_USER")
-    if(is.null(hcauser) || hcauser == ""){
-        hcauser <- readline(prompt="Database username: ")
-    }
-    ## print(paste("hcauser is: ", hcauser))
-
-
-    hcapassword <- Sys.getenv("HCA_PASSWORD")
-    if(is.null(hcapassword) || hcapassword == ""){
-        hcapassword <- getPass(msg = "Database password: ",
-                               noblank = TRUE,
-                               forcemask = FALSE)
-    }
-    ## print(paste("hcapassword is: ", hcapassword))
 
     ## connect to database
-    print("Establishing database connection...")
-    db_connection <- DBI::dbConnect(RPostgres::Postgres(),
-                                    host = "localhost",
-                                    dbname = "bioc_hca",
-                                    user = hcauser,
-                                    port = 5432,
-                                    password = hcapassword
-    )
+    db_connection <- .database_connection()
 
     tbl_choice <- tbl(db_connection, table_name) %>% head() %>% collect()
 
