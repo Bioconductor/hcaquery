@@ -22,7 +22,7 @@ available_tables <- function() {
 #'
 #' @importFrom DBI dbConnect dbExistsTable dbDisconnect
 #' @importFrom RPostgres Postgres
-#' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter %in%
+#' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter
 #' @importFrom tibble tibble
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character

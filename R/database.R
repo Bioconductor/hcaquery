@@ -135,13 +135,12 @@ files_to_db <- function(file_tbl = NULL) {
                 select(version) %>%
                 as.character()
             if(existing_version == version){
-                print(paste(fileId, " with version ",
-                            version, " already exists in the data"))
+                message(fileId, " with version ", version, " already exists in the data")
                 file_exists_in_db <- TRUE
             }
         }
     } else {
-        print("This is the first experiment to be added to the database")
+        message("This is the first experiment to be added to the database")
         existing_experiments_tbl <- tibble(file_id = character(),
                                            version = character(),
                                            project_id = character(),
