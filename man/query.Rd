@@ -16,8 +16,8 @@ table_description(table_name)
 Functions for querying and interacting with the database
 }
 \examples{
-available_tables("genes_tbl")
+\dontrun{available_tables()}
 
-table_description("genes_tbl")
+\dontrun{table_description("genes_tbl")}
 
 }

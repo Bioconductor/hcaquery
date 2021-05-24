@@ -134,7 +134,7 @@ files_to_db <- function(file_tbl = NULL) {
 #' associated project
 #'
 #' @importFrom DBI dbExistsTable dbDisconnect
-#' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter
+#' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter bind_rows
 #' @importFrom tibble tibble
 #' @importFrom tools file_ext
 #' @importFrom tidyselect vars_select_helpers
@@ -194,7 +194,8 @@ files_to_db <- function(file_tbl = NULL) {
                 select(version) %>%
                 as.character()
             if(existing_version == version){
-                message(fileId, " with version ", version, " already exists in the data")
+                message(fileId, " with version ",
+                        version, " already exists in the data")
                 file_exists_in_db <- TRUE
             }
         }

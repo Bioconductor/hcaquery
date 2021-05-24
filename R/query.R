@@ -9,7 +9,7 @@
 #'
 #' @rdname query
 #'
-#' @examples available_tables("genes_tbl")
+#' @examples \dontrun{available_tables()}
 #'
 #' @export
 available_tables <- function() {
@@ -21,12 +21,13 @@ available_tables <- function() {
 #' @param table_name character() name of database table to be described
 #'
 #' @importFrom DBI dbExistsTable dbDisconnect
-#' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter
+#' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter slice_sample
 #' @importFrom tibble tibble
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character
+#' @importFrom utils head
 #'
-#' @examples table_description("genes_tbl")
+#' @examples \dontrun{table_description("genes_tbl")}
 #'
 #' @export
 table_description <- function(table_name) {
