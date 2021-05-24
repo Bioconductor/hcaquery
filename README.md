@@ -30,9 +30,9 @@ and password
 
 ### Examples
 ```
-library(devtools)
 devtools::load_all()
 library(hca)
+library(dplyr)
 ```
 - loading the two smallest `.loom` files
 ```
@@ -41,7 +41,32 @@ loom_tbl <- hca::files(filters = loom_filter,
                             size = 2, sort = "fileSize", order = "asc")
 files_to_db(loom_tbl)
 ```
-- loading the two smallest `.h5ad` files
+
+- loading `.loom` files produced by a single project, and processed by the HCA
+```{r}
+filters <- filters(
+    fileFormat = list(is = "loom"),
+    fileSource = list(is = "DCP/2 Analysis")
+)
+files <- files(filters) # how many? 46 files
+
+files |>  # number and total size per project
+    group_by(projectTitle) |>
+    summarize(n = n(), GB = sum(size) / (1024^3)) |>
+    arrange(GB)
+
+filters <- filters(
+    ## a particular project, with 3 files, 1/2 GB
+    projectId = list(is = "88ec040b-8705-4f77-8f41-f81e57632f7d"),
+    fileFormat = list(is = "loom"),
+    fileSource = list(is = "DCP/2 Analysis")
+)
+
+loom_tbl <- files(filters)
+files_to_db(loom_tbl)
+```
+
+- loading the
 ```
 h5ad_filter <- hca::filters(fileFormat = list(is = c("h5ad")))
 h5ad_tbl <- hca::files(filters = h5ad_filter,

@@ -3,5 +3,4 @@
 .Rdata
 .httr-oauth
 .DS_Store
-postgres-data/*
-docker-compose.yaml
+inst/docker/postgres-data/*
