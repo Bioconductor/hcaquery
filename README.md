@@ -11,9 +11,9 @@ of database tables, one per experiment
 for details)
 - some useful aliases:
 ```
-alias hcadbup='docker-compose -f docker-compose.yaml up -d && docker-compose -f docker-compose.yaml logs -f'
+alias hcadbup='docker-compose -f ./inst/docker/docker-compose.yaml up -d && docker-compose -f ./inst/docker/docker-compose.yaml logs -f'
 
-alias hcadbdownv='docker-compose -f docker-compose.yaml down -v'
+alias hcadbdownv='docker-compose -f ./inst/docker/docker-compose.yaml down -v'
 
 alias hcadb='docker exec -ti bioc-hca-db psql -U hca_user bioc_hca'
 ```

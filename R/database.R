@@ -173,17 +173,7 @@ files_to_db <- function(file_tbl = NULL) {
 
     if(overview_table_exists){
         existing_experiments_tbl <- db_connection %>%
-            tbl("experiment_overviews") %>%
-            collect()
-        existing_assays_tbl <- db_connection %>%
-            tbl("assays_tbl") %>%
-            collect()
-        existing_genes_tbl <- db_connection %>%
-            tbl("genes_tbl") %>%
-            collect()
-        existing_cells_tbl <- db_connection %>%
-            tbl("cells_tbl") %>%
-            collect()
+            tbl("experiment_overviews")
         files_available <- existing_experiments_tbl$file_id
         ## print("Files currently in db are: ")
         ## print(files_available)
@@ -197,14 +187,33 @@ files_to_db <- function(file_tbl = NULL) {
                 message(fileId, " with version ",
                         version, " already exists in the data")
                 file_exists_in_db <- TRUE
+            } else { # will need to add file to existing tables
+                existing_assays_tbl <- db_connection %>%
+                    tbl("assays_tbl")
+                existing_genes_tbl <- db_connection %>%
+                    tbl("genes_tbl")
+                existing_cells_tbl <- db_connection %>%
+                    tbl("cells_tbl")
             }
+        } else {# will need to add file to existing tables
+            existing_assays_tbl <- db_connection %>%
+                tbl("assays_tbl")
+            existing_genes_tbl <- db_connection %>%
+                tbl("genes_tbl")
+            existing_cells_tbl <- db_connection %>%
+                tbl("cells_tbl")
         }
     } else {
         message("This is the first experiment to be added to the database")
         existing_experiments_tbl <- tibble(file_id = character(),
                                            version = character(),
                                            project_id = character(),
-                                           project_title = character())
+                                           project_title = character(),
+                                           donor_organism_genus_species = character(),
+                                           expression_data_type = character(),
+                                           library_construction_approach = character(),
+                                           pipeline_version = character(),
+                                           specimen_from_organism_organ = character())
 
         existing_assays_tbl <- tibble(row_index = numeric(),
                                       col_index = numeric(),
@@ -330,34 +339,43 @@ files_to_db <- function(file_tbl = NULL) {
             dplyr::rename(cell_id = CellID)
 
         ## appending to existing tables
-        existing_assays_tbl <- existing_assays_tbl %>%
+        fin_assays_tbl <- existing_assays_tbl %>%
+            collect() %>%
             bind_rows(new_assay_tbl_recast)
-        dplyr::copy_to(db_connection, existing_assays_tbl,
+        dplyr::copy_to(db_connection, fin_assays_tbl,
                        name = "assays_tbl",
                        temporary = FALSE,
                        overwrite = TRUE)
 
-        existing_genes_tbl <- existing_genes_tbl %>%
+        fin_genes_tbl <- existing_genes_tbl %>%
+            collect() %>%
             bind_rows(new_gene_tbl_recast)
-        dplyr::copy_to(db_connection, existing_genes_tbl,
+        dplyr::copy_to(db_connection, fin_genes_tbl,
                        name = "genes_tbl",
                        temporary = FALSE,
                        overwrite = TRUE)
 
-        existing_cells_tbl <- existing_cells_tbl %>%
+        fin_cells_tbl <- existing_cells_tbl %>%
+            collect() %>%
             bind_rows(new_cell_tbl_recast)
-        dplyr::copy_to(db_connection, existing_cells_tbl,
+        dplyr::copy_to(db_connection, fin_cells_tbl,
                        name = "cells_tbl",
                        temporary = FALSE,
                        overwrite = TRUE)
 
         ## add details to overview table
-        existing_experiments_tbl <- existing_experiments_tbl %>%
+        fin_experiments_tbl <- existing_experiments_tbl %>%
+            collect() %>%
             add_row(file_id = fileId,
                     version = version,
                     project_id = projectId,
-                    project_title = projectTitle)
-        dplyr::copy_to(db_connection, existing_experiments_tbl,
+                    project_title = projectTitle,
+                    donor_organism_genus_species = metadata(sce)[['donor_organism.genus_species']],
+                    expression_data_type = metadata(sce)[['expression_data_type']],
+                    library_construction_approach = metadata(sce)[['library_preparation_protocol.library_construction_approach']],
+                    pipeline_version = metadata(sce)[['pipeline_version']],
+                    specimen_from_organism_organ = metadata(sce)[['specimen_from_organism.organ']])
+        dplyr::copy_to(db_connection, fin_experiments_tbl,
                        name = "experiment_overviews",
                        temporary = FALSE,
                        overwrite = TRUE)
