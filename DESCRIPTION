@@ -30,7 +30,10 @@ Imports:
     tidyselect,
     dbplyr,
     methods,
-    getPass
+    getPass,
+    S4Vectors,
+    Matrix,
+    SingleCellExperiment
 biocViews: Software, SingleCell
 Suggests: 
     testthat (>= 3.0.0)

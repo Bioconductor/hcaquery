@@ -3,21 +3,49 @@
 \name{available_tables}
 \alias{available_tables}
 \alias{table_description}
+\alias{hca_tables}
+\alias{hca_sql_query}
+\alias{hca_file_gene_query}
 \title{Functions for querying and interacting with the database}
 \usage{
 available_tables()
 
 table_description(table_name)
+
+hca_tables()
+
+hca_sql_query(sql_statement)
+
+hca_file_gene_query(genes = character(), file_ident = character())
 }
 \arguments{
 \item{table_name}{character() name of database table to be described}
+
+\item{sql_statement}{character() SQL statement to be interpolated
+and executed}
+
+\item{genes}{character() genes of interest}
+
+\item{file_ident}{character() ID of file to query}
 }
 \description{
-Functions for querying and interacting with the database
+funtion returning a list of database table available for
+querying
+
+function returning a description of a specified database table
+
+function returning instances of all queryable tables
+
+function to execute a SQL statement against tables in the
+database
+
+function to query a file for a specific subset of genes
 }
 \examples{
 \dontrun{available_tables()}
 
 \dontrun{table_description("genes_tbl")}
+
+\dontrun{hca_tables()}
 
 }

@@ -9,6 +9,10 @@
 #'
 #' @rdname query
 #'
+#' @name available_tables
+#' @description funtion returning a list of database table available for
+#' querying
+#'
 #' @examples \dontrun{available_tables()}
 #'
 #' @export
@@ -18,9 +22,10 @@ available_tables <- function() {
 #'
 #' @rdname query
 #'
+#' @name table_description
+#' @description function returning a description of a specified database table
 #' @param table_name character() name of database table to be described
 #'
-#' @importFrom DBI dbExistsTable dbDisconnect
 #' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter slice_sample
 #' @importFrom tibble tibble
 #' @importFrom tidyselect vars_select_helpers
@@ -56,3 +61,116 @@ table_description <- function(table_name) {
 
     table_description_tbl
 }
+
+#' @rdname query
+#'
+#' @name hca_tables
+#' @description function returning instances of all queryable tables
+#'
+#' @importFrom dplyr %>% tbl
+#'
+#' @examples \dontrun{hca_tables()}
+#'
+#' @export
+hca_tables <- function(){
+    ## connect to database
+    db_connection <- .database_connection()
+
+    experiments_tbl <- db_connection %>%
+        tbl("experiment_overviews")
+    assays_tbl <- db_connection %>%
+        tbl("assays_tbl")
+    genes_tbl <- db_connection %>%
+        tbl("genes_tbl")
+    cells_tbl <- db_connection %>%
+        tbl("cells_tbl")
+
+    hca_tbls <- list(experiments_tbl = experiments_tbl,
+                     assays_tbl = assays_tbl,
+                     genes_tbl = genes_tbl,
+                     cells_tbl = cells_tbl)
+}
+
+#' @rdname query
+#'
+#' @name hca_sql_query
+#' @description function to execute a SQL statement against tables in the
+#' database
+#'
+#' @param sql_statement character() SQL statement to be interpolated
+#' and executed
+#'
+#' @export
+hca_sql_query <- function(sql_statement){
+    ## connect to database
+    db_connection <- .database_connection()
+    ## security considerations
+    ## see: https://shiny.rstudio.com/articles/sql-injections.html
+
+}
+
+#' @rdname query
+#'
+#' @name hca_file_gene_query
+#' @description function to query a file for a specific subset of genes
+#'
+#' @importFrom dplyr %>% tbl filter collect right_join left_join
+#' @importFrom Matrix sparseMatrix
+#' @importFrom SingleCellExperiment SingleCellExperiment
+#' @param genes character() genes of interest
+#' @param file_ident character() ID of file to query
+#'
+#' @export
+hca_file_gene_query <- function(genes = character(),
+                                file_ident = character()){
+    ## connect to database
+    db_connection <- .database_connection()
+
+    row_data_all <-
+        tbl(db_connection, "genes_tbl") %>%
+        filter(file_id == file_ident) %>%
+        filter(gene %in% genes)
+
+    row_data <-
+        row_data_all %>%
+        select(-c("row_index"))
+
+    row_idx <-
+        row_data_all %>%
+        select(row_index)
+
+    col_data_all <-
+        tbl(db_connection, "cells_tbl") %>%
+        filter(file_id == file_ident)
+
+    col_data <-
+        col_data_all %>%
+        select(-c("col_index"))
+
+    col_idx <-
+        col_data_all %>%
+        select(col_index)
+
+    assay_idx <-
+        tbl(db_connection, "assays_tbl") %>%
+        right_join(row_idx) %>%
+        left_join(col_idx) %>%
+        collect()
+
+    exp_metadata <- tbl(db_connection, "experiment_overviews") %>%
+                    filter(file_id == file_ident)
+
+    ## reconstruct a SingleCellExperiment object
+    assay_matrix <- sparseMatrix(i = assay_idx$row_index,
+                                 j = assay_idx$col_index,
+                                 x = assay_idx$values,
+                                 dims = c(max(row_idx %>% collect()),
+                                          max(col_idx %>% collect())))
+
+    # still debugging...
+    # error comes when adding rowData > look into dimensions
+    sce <- SingleCellExperiment(assays = assay_matrix,
+                                colData = col_data,
+                                rowData = row_data)
+}
+

@@ -24,5 +24,10 @@ files_to_db(file_tbl = NULL)
 associated project}
 }
 \description{
-Populating database with data output of single cell experiments
+function which takes a file tibble and for each file, generates
+a SummarizedExperiment and extracts cell annotation, gene annotation, assay,
+and experiment level data into a specified relational database
+
+helper function for processing a single file and inserting it's
+information into the database; all data in the same tables
 }

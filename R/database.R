@@ -86,6 +86,10 @@
 #'
 #' @rdname database
 #'
+#' @name files_to_db
+#' @description function which takes a file tibble and for each file, generates
+#' a SummarizedExperiment and extracts cell annotation, gene annotation, assay,
+#' and experiment level data into a specified relational database
 #' @param file_tbl tbl_hca tibble of files as returned by hca::files()
 #'
 #' @importFrom dplyr %>% select left_join
@@ -126,6 +130,8 @@ files_to_db <- function(file_tbl = NULL) {
 
 #' @rdname database
 #'
+#' @description helper function for processing a single file and inserting it's
+#' information into the database; all data in the same tables
 #' @param file_path character() location of experiment output file
 #' @param fileId character() unique identifier of file
 #' @param version character() file version
@@ -139,6 +145,7 @@ files_to_db <- function(file_tbl = NULL) {
 #' @importFrom tools file_ext
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character
+#' @importFrom S4Vectors metadata
 .single_file_to_db_compact <- function(file_path,
                                         fileId,
                                         version,
