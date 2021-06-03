@@ -79,6 +79,7 @@ sparse_mtx_to_assay_tbl <- function(sparse_matrix){
 #' @param sparse_matrix dgCMatrix sparse matrix representation
 #'
 #' @importFrom tibble tibble
+#' @importFrom Matrix summary
 #'
 #' @return tibble with row_index, col_index, and value of each non-zero entry
 #' in the assay matrix
@@ -122,6 +123,7 @@ sparse_mtx_to_assay_tbl <- function(sparse_matrix){
 #' @param sparse_matrix dgRMatrix sparse matrix representation
 #'
 #' @importFrom tibble tibble
+#' @importFrom Matrix summary
 #'
 #' @return tibble with row_index, col_index, and value of each non-zero entry
 #' in the assay matrix

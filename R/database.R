@@ -180,7 +180,8 @@ files_to_db <- function(file_tbl = NULL) {
 
     if(overview_table_exists){
         existing_experiments_tbl <- db_connection %>%
-            tbl("experiment_overviews")
+            tbl("experiment_overviews") %>%
+            collect()
         files_available <- existing_experiments_tbl$file_id
         ## print("Files currently in db are: ")
         ## print(files_available)
@@ -372,7 +373,6 @@ files_to_db <- function(file_tbl = NULL) {
 
         ## add details to overview table
         fin_experiments_tbl <- existing_experiments_tbl %>%
-            collect() %>%
             add_row(file_id = fileId,
                     version = version,
                     project_id = projectId,

@@ -36,5 +36,9 @@ Imports:
     SingleCellExperiment
 biocViews: Software, SingleCell
 Suggests: 
-    testthat (>= 3.0.0)
+    rmarkdown,
+    knitr,
+    testthat (>= 3.0.0),
+    BiocStyle
 Config/testthat/edition: 3
+VignetteBuilder: knitr

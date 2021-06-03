@@ -114,7 +114,7 @@ hca_sql_query <- function(sql_statement){
 #' @name hca_file_gene_query
 #' @description function to query a file for a specific subset of genes
 #'
-#' @importFrom dplyr %>% tbl filter collect right_join left_join
+#' @importFrom dplyr %>% tbl filter collect right_join left_join mutate
 #' @importFrom Matrix sparseMatrix
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @param genes character() genes of interest
@@ -157,20 +157,35 @@ hca_file_gene_query <- function(genes = character(),
         left_join(col_idx) %>%
         collect()
 
+    ## need to reset the row_index
+    assay_idx <- assay_idx %>%
+        dplyr::mutate(row_index_reset = row_index - min(row_index) + 1)
+
     exp_metadata <- tbl(db_connection, "experiment_overviews") %>%
-                    filter(file_id == file_ident)
+                    filter(file_id == file_ident) %>%
+                    collect()
+
+    metadata <- list(donor_organism.genus_species = exp_metadata$donor_organism_genus_species,
+                     expression_data_type = exp_metadata$expression_data_type,
+                     library_preparation_protocol.library_construction_approach = exp_metadata$library_construction_approach,
+                     pipeline_version = exp_metadata$pipeline_version,
+                     specimen_from_organism.organ = exp_metadata$specimen_from_organism_organ)
+
+    row_idx_dims <- row_idx %>% collect() %>% dim()
+    col_idx_dims <- col_idx %>% collect() %>% dim()
+
+    row_idx_length <- row_idx_dims[1]
+    col_idx_length <- col_idx_dims[1]
 
     ## reconstruct a SingleCellExperiment object
-    assay_matrix <- sparseMatrix(i = assay_idx$row_index,
+    assay_matrix <- sparseMatrix(i = assay_idx$row_index_reset,
                                  j = assay_idx$col_index,
                                  x = assay_idx$values,
-                                 dims = c(max(row_idx %>% collect()),
-                                          max(col_idx %>% collect())))
+                                 dims = c(row_idx_length, col_idx_length))
 
-    # still debugging...
-    # error comes when adding rowData > look into dimensions
     sce <- SingleCellExperiment(assays = assay_matrix,
                                 colData = col_data,
-                                rowData = row_data)
+                                rowData = row_data,
+                                metadata = metadata)
 }
 
