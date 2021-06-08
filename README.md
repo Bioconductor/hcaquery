@@ -1,35 +1,24 @@
-## Files to Database
-- functions will take either a `.loom` file or `.h5ad` file and will populate
-the following four tables:
-    1. `<project>_gene_annotations` for row-wise gene annotations of an assay
-    matrix
-    2. `<project>_cell_annotations` for column-wise cell annotations of an
-    assay matrix
-    3. `<project>_assay_values` for the row index, column index, and cell
-    value for all ***non-zero*** values of the assay matrix
-    4. `experiment_overviews` for metadata on each file
-- this makes use of a dockerized PostgreSQL database
-(see `/inst/docker/docker-compose.yaml` for details)
-- some useful aliases:
-```
-alias hcadbup='docker-compose -f ./inst/docker/docker-compose.yaml up -d && docker-compose -f ./inst/docker/docker-compose.yaml logs -f'
+# `hcaquery`
+- This package, in conjunction with the  [**hca package**](https://bioconductor.org/packages/release/bioc/html/hca.html), allows
+for exploration of the Human Cell Atlas' data, made available by their API.
 
-alias hcadbdownv='docker-compose -f ./inst/docker/docker-compose.yaml down -v'
+- Its core functionality is the generation of relational database
+tables containing data from `.loom` and `.h5ad` files
 
-alias hcadb='docker exec -ti bioc-hca-db psql -U hca_user bioc_hca'
-```
+- This is done by using the `hca` package to obtain `.loom` and `.h5ad` files
+from the HCA API, each of which can be parse into a
+[`SingleCellExperiment`](https://bioconductor.org/packages/release/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html) object, providing us with access to
+(1) cell annotations, (2) gene annotations, (3) assay matrices,
+and (4) file metadata.
 
-- use `\dn` to list database schemas
+- Each of these data categories in turn corresponds to a table in the relational
+database schema:
+    1. **genes_tbl**
+    2. **cells_tbl**
+    3. **assays_tbl**
+    4. **experiment_overviews**
 
-### Credentials Management
-- User must provide a username and password for connecting to the database
-- The program will first check to see if the appropriate environment variables
-are set in `.Renviron` (or your `.Renviron` of choice)
-for `HCA_USER` and `HCA_PASSWORD`
-- If they are not, the user will be prompted to input their username
-and password
-
-### Examples
+### Examples (*in development*)
 ```
 devtools::load_all()
 library(hca)
@@ -65,13 +54,4 @@ filters <- filters(
 
 loom_tbl <- files(filters)
 files_to_db(loom_tbl)
-```
-
-- loading the
-```
-h5ad_filter <- hca::filters(fileFormat = list(is = c("h5ad")))
-h5ad_tbl <- hca::files(filters = h5ad_filter,
-                            size = 2, sort = "fileSize", order = "asc")
-
-files_to_db(h5ad_tbl)
 ```

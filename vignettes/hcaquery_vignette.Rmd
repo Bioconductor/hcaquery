@@ -24,9 +24,8 @@ library(hcaquery)
 ```
 
 # Introduction
-This package, in conjunction with the  [**hca package**](https://bioconductor.org/packages/release/bioc/html/hca.html), allow
+This package, in conjunction with the  [**hca package**](https://bioconductor.org/packages/release/bioc/html/hca.html), allows
 for exploration of the Human Cell Atlas' data, made available by their API.
-The examples in this vignette
 
 ## Setup
 A core functionality of this packages is the generation of relational database

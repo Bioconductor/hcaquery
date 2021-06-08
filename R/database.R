@@ -109,7 +109,7 @@ files_to_db <- function(file_tbl = NULL) {
         tibble::add_column(file_locations = file_locations)
 
     ## generate a tibble of file locations and associated projectIds
-    project_titles <- file_tbl_aug$projectTitle
+    project_titles <- as.vector(file_tbl_aug$projectTitle)
     file_filter <- filters(projectTitle = list(is = project_titles))
     test_proj <- projects(file_filter)
     file_and_projIds <- file_tbl_aug %>%
