@@ -1,0 +1,118 @@
+---
+title: "hca & hcaquery presentation"
+author: "Maya Reed McDaniel"
+date: "6/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Setup
+```{r setup, message = FALSE}
+library(dplyr)
+library(LoomExperiment)
+library(hca)
+library(hcaquery)
+```
+
+## hca
+- explore all available projects
+```{r}
+hca::projects()
+```
+
+- explore just those projects for which the organ is brain and species is Homo Sapiens
+```{r}
+brain_homo_sapien_filter <- hca::filters(
+    genusSpecies = list(is = "Homo sapiens"),
+    organ = list(is = c("brain")),
+    workflow = list(is = c("optimus_v4.2.2")))
+
+brain_homo_sapien_proj <- hca::projects(filters = brain_homo_sapien_filter)
+
+brain_homo_sapien_proj
+```
+
+- Select a project to look at in greater depth
+```{r}
+project_id <- brain_homo_sapien_proj$projectId[3]
+```
+
+- What files are associated with this project
+```{r}
+file_filter <- hca::filters(projectId = list(is = project_id))
+proj_files <- hca::files(filter = file_filter)
+proj_files
+```
+
+- We want loom files for which there is a single donor (taking the two smallest)
+```{r}
+additional_file_filters <- hca::filters(projectId = list(is = project_id),
+                                        fileFormat = list(is = "loom"),
+                                        donorCount = list(is = c(1)))
+proj_files_refined <- hca::files(filter = additional_file_filters,
+                                 sort = "fileSize",
+                                 order = "asc",
+                                 size = 2)
+proj_files_refined
+```
+
+- download these files
+```{r}
+project_file_locations <- proj_files_refined %>%
+                            hca::files_download()
+project_file_locations
+```
+
+## hcaquery
+- let's take the smallest two `.loom` files from the Optimus workflow across all projects
+```{r}
+test_file_filter <- hca::filters(workflow = list(is = c("optimus_v4.2.2")),
+                                 fileFormat = list(is = c("loom")))
+test_file_tbl <- hca::files(filters = test_file_filter,
+                            size = 2, sort = "fileSize", order = "asc")
+project_file_locations <- test_file_tbl %>% hca::files_download()
+```
+
+- let's take a look at a few of there `.loom` files
+```{r}
+exp_1 <- LoomExperiment::import(project_file_locations[1],
+                                   type = "SingleCellLoomExperiment")
+metadata(exp_1)
+
+exp_2 <- LoomExperiment::import(project_file_locations[2],
+                                   type = "SingleCellLoomExperiment")
+metadata(exp_2) 
+```
+
+- perhaps we could load them into the database for better querying
+```{r}
+hcaquery::files_to_db(proj_files_refined)
+```
+
+- description of each table
+```{r}
+hcaquery::available_tables()
+hcaquery::table_description("genes_tbl")
+hcaquery::table_description("cells_tbl")
+hcaquery::table_description("assays_tbl")
+hcaquery::table_description("experiment_overviews")
+```
+
+- query for file with donor species of Homo sapiens
+```{r}
+## example of queries on accessible db tables
+hca_tbls <- hca_tables()
+human_experiments <- hca_tbls$experiments_tbl %>%
+    filter(donor_organism_genus_species == "Homo sapiens")
+
+human_experiments
+```
+- query for specific genes within a file, returnig a `SingleCellExperiment` object
+```{r}
+genes <- c("Gm18956", "Gm37180", "Gm37363")
+smat <- hca_file_gene_query(genes = genes,
+                            file_ident = "b077b456-6362-59ea-a5b6-230dd8bc6d91")
+smat
+```
