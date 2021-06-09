@@ -16,13 +16,13 @@ library(hca)
 library(hcaquery)
 ```
 
-## hca
+## `hca` package
 - explore all available projects
 ```{r}
 hca::projects()
 ```
 
-- explore just those projects for which the organ is brain and species is Homo Sapiens
+- explore just those projects for which the organ is "brain" and species is "Homo sapiens"
 ```{r}
 brain_homo_sapien_filter <- hca::filters(
     genusSpecies = list(is = "Homo sapiens"),
@@ -65,7 +65,7 @@ project_file_locations <- proj_files_refined %>%
 project_file_locations
 ```
 
-## hcaquery
+## `hcaquery` package
 - let's take the smallest two `.loom` files from the Optimus workflow across all projects
 ```{r}
 test_file_filter <- hca::filters(workflow = list(is = c("optimus_v4.2.2")),
@@ -75,7 +75,7 @@ test_file_tbl <- hca::files(filters = test_file_filter,
 project_file_locations <- test_file_tbl %>% hca::files_download()
 ```
 
-- let's take a look at a few of there `.loom` files
+- let's take a look at the data of these files
 ```{r}
 exp_1 <- LoomExperiment::import(project_file_locations[1],
                                    type = "SingleCellLoomExperiment")
@@ -86,14 +86,15 @@ exp_2 <- LoomExperiment::import(project_file_locations[2],
 metadata(exp_2) 
 ```
 
-- perhaps we could load them into the database for better querying
+- perhaps we could load them into the relational database for better querying
 ```{r}
 hcaquery::files_to_db(test_file_tbl)
 ```
 
-- description of each table
+- what tables are available and a description of each
 ```{r}
 hcaquery::available_tables()
+
 hcaquery::table_description("genes_tbl")
 hcaquery::table_description("cells_tbl")
 hcaquery::table_description("assays_tbl")
@@ -109,7 +110,8 @@ human_experiments <- hca_tbls$experiments_tbl %>%
 
 human_experiments
 ```
-- query for specific genes within a file, returnig a `SingleCellExperiment` object
+
+- query for specific genes within a file, returning a `SingleCellExperiment` object
 ```{r}
 genes <- c("Gm18956", "Gm37180", "Gm37363")
 smat <- hca_file_gene_query(genes = genes,
