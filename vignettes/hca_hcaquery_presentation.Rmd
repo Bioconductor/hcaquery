@@ -88,7 +88,7 @@ metadata(exp_2)
 
 - perhaps we could load them into the database for better querying
 ```{r}
-hcaquery::files_to_db(proj_files_refined)
+hcaquery::files_to_db(test_file_tbl)
 ```
 
 - description of each table
