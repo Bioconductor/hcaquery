@@ -53,8 +53,7 @@ additional_file_filters <- hca::filters(projectId = list(is = project_id),
                                         donorCount = list(is = c(1)))
 proj_files_refined <- hca::files(filter = additional_file_filters,
                                  sort = "fileSize",
-                                 order = "asc",
-                                 size = 2)
+                                 order = "asc")
 proj_files_refined
 ```
 

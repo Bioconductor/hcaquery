@@ -146,6 +146,7 @@ files_to_db <- function(file_tbl = NULL) {
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character
 #' @importFrom S4Vectors metadata
+#' @importFrom tictoc tic toc
 .single_file_to_db_compact <- function(file_path,
                                         fileId,
                                         version,
@@ -174,11 +175,14 @@ files_to_db <- function(file_tbl = NULL) {
 
     ## first, check to see if file already exists in the database as not to
     ## duplicate data
+    tic("Checking if experiment_overviews table exists")
     overview_table_exists <- db_connection %>%
         DBI::dbExistsTable("experiment_overviews")
     file_exists_in_db <- FALSE
+    toc()
 
     if(overview_table_exists){
+        tic("Checking if file exists in database")
         existing_experiments_tbl <- db_connection %>%
             tbl("experiment_overviews") %>%
             collect()
@@ -211,7 +215,9 @@ files_to_db <- function(file_tbl = NULL) {
             existing_cells_tbl <- db_connection %>%
                 tbl("cells_tbl")
         }
+        toc()
     } else {
+        tic("Setup for first file import")
         message("This is the first experiment to be added to the database")
         existing_experiments_tbl <- tibble(file_id = character(),
                                            version = character(),
@@ -304,6 +310,7 @@ files_to_db <- function(file_tbl = NULL) {
                                      reads_unmapped = integer(),
                                      spliced_reads = integer(),
                                      file_id = character())
+        toc()
     }
 
     ## if file does not already exist in the database, proceed with appending
@@ -311,67 +318,72 @@ files_to_db <- function(file_tbl = NULL) {
     ## https://dplyr.tidyverse.org/reference/bind.html
     if(!file_exists_in_db) {
         file_ext <- tools::file_ext(file_path)
+        tic("creating SingleCellExperiment object")
         sce <- switch(file_ext,
                       "loom" = loom_to_sce(file_path),
                       "h5ad" = h5ad_to_sce(file_path))
+        toc()
+        tic("generating sparse matrix")
         sparse_matrix <- switch(file_ext,
                                 "loom" = loom_sparse_matrix(file_path),
                                 "h5ad" = h5ad_sparse_matrix(file_path))
-
+        toc()
+        tic("generating assay tibble")
         new_assay_tbl <- sparse_mtx_to_assay_tbl(sparse_matrix)
+        toc()
 
+        tic("generating gene tibble")
         new_gene_tbl <- sce_rowdata_to_gene_tbl(sce)
+        toc()
 
+        tic("generating cell tibble")
         new_cell_tbl <- sce_coldata_to_cell_tbl(sce)
+        toc()
 
         ## if any column in any table is of type "raw" i.e. byte data
         ## conversion is needed
+        tic("recasting assay tibble")
         new_assay_tbl_recast <- new_assay_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
                           as.logical)) %>%
             add_column(file_id = fileId)
+        toc()
 
+        tic("recasting gene tibble")
         new_gene_tbl_recast <- new_gene_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
                           as.logical)) %>%
             add_column(file_id = fileId) %>%
             dplyr::rename(gene = Gene)
+        toc()
 
+        tic("recasting cell tibble")
         new_cell_tbl_recast <- new_cell_tbl %>%
             #mutate(across(where(is.raw), ~ rawToChar(.x, multiple = T)))
             mutate(across(tidyselect::vars_select_helpers$where(is.raw),
                           as.logical)) %>%
             add_column(file_id = fileId) %>%
             dplyr::rename(cell_id = CellID)
+        toc()
 
         ## appending to existing tables
-        fin_assays_tbl <- existing_assays_tbl %>%
-            collect() %>%
-            bind_rows(new_assay_tbl_recast)
-        dplyr::copy_to(db_connection, fin_assays_tbl,
-                       name = "assays_tbl",
-                       temporary = FALSE,
-                       overwrite = TRUE)
 
-        fin_genes_tbl <- existing_genes_tbl %>%
-            collect() %>%
-            bind_rows(new_gene_tbl_recast)
-        dplyr::copy_to(db_connection, fin_genes_tbl,
-                       name = "genes_tbl",
-                       temporary = FALSE,
-                       overwrite = TRUE)
+        tic("appending to assay table")
+        DBI::dbWriteTable(db_connection, "assays_tbl", new_assay_tbl_recast, append = TRUE)
+        toc()
 
-        fin_cells_tbl <- existing_cells_tbl %>%
-            collect() %>%
-            bind_rows(new_cell_tbl_recast)
-        dplyr::copy_to(db_connection, fin_cells_tbl,
-                       name = "cells_tbl",
-                       temporary = FALSE,
-                       overwrite = TRUE)
+        tic("appending to gene table")
+        DBI::dbWriteTable(db_connection, "genes_tbl", new_gene_tbl_recast, append = TRUE)
+        toc()
+
+        tic("appending to cell table")
+        DBI::dbWriteTable(db_connection, "cells_tbl", new_cell_tbl_recast, append = TRUE)
+        toc()
 
         ## add details to overview table
+        tic("appending to experiment overview table")
         fin_experiments_tbl <- existing_experiments_tbl %>%
             add_row(file_id = fileId,
                     version = version,
@@ -386,6 +398,7 @@ files_to_db <- function(file_tbl = NULL) {
                        name = "experiment_overviews",
                        temporary = FALSE,
                        overwrite = TRUE)
+        toc()
 
         DBI::dbDisconnect(db_connection)
     }

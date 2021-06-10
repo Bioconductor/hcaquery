@@ -33,7 +33,8 @@ Imports:
     getPass,
     S4Vectors,
     Matrix,
-    SingleCellExperiment
+    SingleCellExperiment,
+    tictoc
 biocViews: Software, SingleCell
 Suggests: 
     rmarkdown,
