@@ -27,7 +27,7 @@ available_tables <- function() {
 #' @param table_name character() name of database table to be described
 #'
 #' @importFrom dplyr %>% copy_to mutate across add_row tbl collect filter slice_sample
-#' @importFrom tibble tibble
+#' @importFrom tibble tibble print
 #' @importFrom tidyselect vars_select_helpers
 #' @importFrom hca .is_scalar_character
 #' @importFrom utils head
@@ -59,7 +59,7 @@ table_description <- function(table_name) {
                                                data_types = dtypes,
                                                example = ex_row)
 
-    table_description_tbl
+    print(as_tibble(table_description_tbl), n = nrow(table_description_tbl))
 }
 
 #' @rdname query
@@ -114,7 +114,9 @@ hca_sql_query <- function(sql_statement){
 #' @name hca_file_gene_query
 #' @description function to query a file for a specific subset of genes
 #'
-#' @importFrom dplyr %>% tbl filter collect right_join left_join mutate
+#' @importFrom dplyr %>% tbl filter collect right_join left_join
+#' @importFrom dplyr mutate n_distinct
+#' @importFrom tibble add_column
 #' @importFrom Matrix sparseMatrix
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @param genes character() genes of interest
@@ -153,39 +155,49 @@ hca_file_gene_query <- function(genes = character(),
 
     assay_idx <-
         tbl(db_connection, "assays_tbl") %>%
-        right_join(row_idx) %>%
-        left_join(col_idx) %>%
+        ## something with filtering on the file_id is causing issues
+        filter(file_id == file_ident) %>%
+        inner_join(row_idx) %>%
+        inner_join(col_idx) %>%
         collect()
 
-    ## need to reset the row_index
-    assay_idx <- assay_idx %>%
-        dplyr::mutate(row_index_reset = row_index - min(row_index) + 1)
+    ## if there were no non-zero values for this combination of row and column
+    ## indices, an emprty table will be returned
+    if(dim(assay_idx)[1] != 0){
+        ## need to reset the row_index
+        row_index_reset_factors <- as.factor(assay_idx$row_index)
+        levels(row_index_reset_factors) <- seq(1:dplyr::n_distinct(assay_idx$row_index))
+        assay_idx <- assay_idx %>%
+            tibble::add_column(row_index_reset = as.numeric(row_index_reset_factors))
 
-    exp_metadata <- tbl(db_connection, "experiment_overviews") %>%
-                    filter(file_id == file_ident) %>%
-                    collect()
+        exp_metadata <- tbl(db_connection, "experiment_overviews") %>%
+            filter(file_id == file_ident) %>%
+            collect()
 
-    metadata <- list(donor_organism.genus_species = exp_metadata$donor_organism_genus_species,
-                     expression_data_type = exp_metadata$expression_data_type,
-                     library_preparation_protocol.library_construction_approach = exp_metadata$library_construction_approach,
-                     pipeline_version = exp_metadata$pipeline_version,
-                     specimen_from_organism.organ = exp_metadata$specimen_from_organism_organ)
+        metadata <- list(donor_organism.genus_species = exp_metadata$donor_organism_genus_species,
+                         expression_data_type = exp_metadata$expression_data_type,
+                         library_preparation_protocol.library_construction_approach = exp_metadata$library_construction_approach,
+                         pipeline_version = exp_metadata$pipeline_version,
+                         specimen_from_organism.organ = exp_metadata$specimen_from_organism_organ)
 
-    row_idx_dims <- row_idx %>% collect() %>% dim()
-    col_idx_dims <- col_idx %>% collect() %>% dim()
+        row_idx_length <- max(assay_idx$row_index_reset)
+        col_idx_dims <- col_idx %>% collect() %>% dim()
+        col_idx_length <- col_idx_dims[1]
 
-    row_idx_length <- row_idx_dims[1]
-    col_idx_length <- col_idx_dims[1]
+        assay_matrix <- sparseMatrix(i = assay_idx$row_index_reset,
+                                     j = assay_idx$col_index,
+                                     x = assay_idx$values,
+                                     dims = c(row_idx_length, col_idx_length))
 
-    ## reconstruct a SingleCellExperiment object
-    assay_matrix <- sparseMatrix(i = assay_idx$row_index_reset,
-                                 j = assay_idx$col_index,
-                                 x = assay_idx$values,
-                                 dims = c(row_idx_length, col_idx_length))
+        sce <- SingleCellExperiment(assays = assay_matrix,
+                                    colData = col_data,
+                                    rowData = row_data,
+                                    metadata = metadata)
 
-    sce <- SingleCellExperiment(assays = assay_matrix,
-                                colData = col_data,
-                                rowData = row_data,
-                                metadata = metadata)
+        return(sce)
+    } else {
+        message("No non-zero expression values exist for the specified file
+                and genes.")
+    }
 }
 
