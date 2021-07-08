@@ -147,6 +147,7 @@ files_to_db <- function(file_tbl = NULL) {
 #' @importFrom hca .is_scalar_character
 #' @importFrom S4Vectors metadata
 #' @importFrom tictoc tic toc
+#' @importFrom SummarizedExperiment assay
 .single_file_to_db_compact <- function(file_path,
                                         fileId,
                                         version,
@@ -220,6 +221,7 @@ files_to_db <- function(file_tbl = NULL) {
         tic("Setup for first file import")
         message("This is the first experiment to be added to the database")
         existing_experiments_tbl <- tibble(file_id = character(),
+                                           file_type = character(),
                                            version = character(),
                                            project_id = character(),
                                            project_title = character(),
@@ -324,9 +326,7 @@ files_to_db <- function(file_tbl = NULL) {
                       "h5ad" = h5ad_to_sce(file_path))
         toc()
         tic("generating sparse matrix")
-        sparse_matrix <- switch(file_ext,
-                                "loom" = loom_sparse_matrix(file_path),
-                                "h5ad" = h5ad_sparse_matrix(file_path))
+        sparse_matrix <- to_sparse_matrix(SummarizedExperiment::assay(sce))
         toc()
         tic("generating assay tibble")
         new_assay_tbl <- sparse_mtx_to_assay_tbl(sparse_matrix)
@@ -371,21 +371,28 @@ files_to_db <- function(file_tbl = NULL) {
         ## appending to existing tables
 
         tic("appending to assay table")
-        DBI::dbWriteTable(db_connection, "assays_tbl", new_assay_tbl_recast, append = TRUE)
+        DBI::dbWriteTable(db_connection,
+                          "assays_tbl",
+                          new_assay_tbl_recast, append = TRUE)
         toc()
 
         tic("appending to gene table")
-        DBI::dbWriteTable(db_connection, "genes_tbl", new_gene_tbl_recast, append = TRUE)
+        DBI::dbWriteTable(db_connection,
+                          "genes_tbl",
+                          new_gene_tbl_recast, append = TRUE)
         toc()
 
         tic("appending to cell table")
-        DBI::dbWriteTable(db_connection, "cells_tbl", new_cell_tbl_recast, append = TRUE)
+        DBI::dbWriteTable(db_connection,
+                          "cells_tbl",
+                          new_cell_tbl_recast, append = TRUE)
         toc()
 
         ## add details to overview table
         tic("appending to experiment overview table")
         fin_experiments_tbl <- existing_experiments_tbl %>%
             add_row(file_id = fileId,
+                    file_type = file_ext,
                     version = version,
                     project_id = projectId,
                     project_title = projectTitle,

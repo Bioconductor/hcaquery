@@ -3,11 +3,13 @@
 \name{loom_to_sce}
 \alias{loom_to_sce}
 \alias{h5ad_to_sce}
-\alias{loom_sparse_matrix}
-\alias{h5ad_sparse_matrix}
+\alias{to_sparse_matrix}
+\alias{.to_sparse_matrix.dgCMatrix}
+\alias{.to_sparse_matrix.dgRMatrix}
+\alias{.to_sparse_matrix.DelayedMatrix}
+\alias{.to_sparse_matrix.matrix}
 \alias{sparse_mtx_to_assay_tbl}
 \alias{.sparse_matrix_to_assay_tbl.dgCMatrix}
-\alias{.sparse_matrix_to_assay_tbl.dgRMatrix}
 \alias{sce_rowdata_to_gene_tbl}
 \alias{sce_coldata_to_cell_tbl}
 \title{Helper functions for the processing of .loom and .h5ad files into
@@ -17,15 +19,19 @@ loom_to_sce(loom_filepath)
 
 h5ad_to_sce(h5ad_filepath)
 
-loom_sparse_matrix(loom_filepath)
+to_sparse_matrix(matrix_obj)
 
-h5ad_sparse_matrix(h5ad_filepath)
+.to_sparse_matrix.dgCMatrix(c_matrix)
+
+.to_sparse_matrix.dgRMatrix(r_matrix)
+
+.to_sparse_matrix.DelayedMatrix(d_matrix)
+
+.to_sparse_matrix.matrix(m_matrix)
 
 sparse_mtx_to_assay_tbl(sparse_matrix)
 
 .sparse_matrix_to_assay_tbl.dgCMatrix(sparse_matrix)
-
-.sparse_matrix_to_assay_tbl.dgRMatrix(sparse_matrix)
 
 sce_rowdata_to_gene_tbl(sce)
 
@@ -36,9 +42,19 @@ sce_coldata_to_cell_tbl(sce)
 
 \item{h5ad_filepath}{character() absolute path to downloaded .h5ad file}
 
-\item{sparse_matrix}{dgRMatrix sparse matrix representation}
+\item{sparse_matrix}{dgCMatrix sparse matrix representation}
 
 \item{sce}{SingleCellExperiment or SingleCellLoomExperiment object}
+
+\item{sce_obj}{SummarizedExperiment (or subclass) object}
+
+\item{dgCMatrix}{sparse matrix}
+
+\item{dgRMatrix}{sparse matrix}
+
+\item{DelayedMatrix}{sparse matrix}
+
+\item{matrix}{sparse matrix}
 }
 \value{
 SingleCellLoomExperiment object
@@ -47,10 +63,11 @@ SingleCellExperiment object
 
 dgCMatrix sparse matrix representation
 
-dgRMatrix sparse matrix representation
+dgCMatrix sparse matrix representation
 
-tibble with row_index, col_index, and value of each non-zero entry
-in the assay matrix
+dgCMatrix sparse matrix representation
+
+dgCMatrix sparse matrix representation
 
 tibble with row_index, col_index, and value of each non-zero entry
 in the assay matrix
@@ -60,20 +77,25 @@ tibble of gene annotations
 tibble of cell annotations
 }
 \description{
-function to change SingleCellLoomExperiment object's assay
-matrix into sparse representation (typically \code{dgCMatrix})
+convert a SummarizedExperiment assay to a
+sparse matrix representation
 
-function to change extract the existing sparse matrix
-representation (typically \code{dgRMatrix}) of the SingleCellExperiment
-object's assay
+function to change SingleCellLoomExperiment object's assay
+matrix into sparse representation (\code{dgCMatrix})
+
+function to change SingleCellLoomExperiment object's assay
+matrix into sparse representation (\code{dgRMatrix})
+
+function to change SingleCellLoomExperiment object's assay
+matrix into sparse representation (\code{DelayedMatrix})
+
+function to change SingleCellLoomExperiment object's assay
+matrix into sparse representation (\code{matrix})
 
 convert a sparse matrix representation of the assay into a
 reformatted tibble
 
 convert a dgCMatrix sparse matrix representation of the assay
-into a reformatted tibble
-
-convert a dgRMatrix sparse matrix representation of the assay
 into a reformatted tibble
 
 function to change SingleCellExperiment or

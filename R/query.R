@@ -161,12 +161,16 @@ hca_file_gene_query <- function(genes = character(),
         inner_join(col_idx) %>%
         collect()
 
+    ## start with zero matrix and then fill if applicable;
+    ## no need for if statement
+    ## inform them when it is a fully zero matrix
     ## if there were no non-zero values for this combination of row and column
-    ## indices, an emprty table will be returned
+    ## indices, an empty table will be returned
     if(dim(assay_idx)[1] != 0){
         ## need to reset the row_index
         row_index_reset_factors <- as.factor(assay_idx$row_index)
         levels(row_index_reset_factors) <- seq(1:dplyr::n_distinct(assay_idx$row_index))
+        ## could be replaced with the match function
         assay_idx <- assay_idx %>%
             tibble::add_column(row_index_reset = as.numeric(row_index_reset_factors))
 
@@ -180,6 +184,7 @@ hca_file_gene_query <- function(genes = character(),
                          pipeline_version = exp_metadata$pipeline_version,
                          specimen_from_organism.organ = exp_metadata$specimen_from_organism_organ)
 
+        ## if there were no non-zero entries, breaks down here
         row_idx_length <- max(assay_idx$row_index_reset)
         col_idx_dims <- col_idx %>% collect() %>% dim()
         col_idx_length <- col_idx_dims[1]
@@ -196,8 +201,93 @@ hca_file_gene_query <- function(genes = character(),
 
         return(sce)
     } else {
+        ## instead return a result of zero-values
         message("No non-zero expression values exist for the specified file
                 and genes.")
     }
+}
+
+
+#' @rdname query
+#'
+#' @name hca_file_gene_query_new
+#' @description function to query a file for a specific subset of genes
+#'
+#' @importFrom dplyr %>% tbl filter collect right_join left_join
+#' @importFrom dplyr mutate n_distinct
+#' @importFrom tibble add_column
+#' @importFrom Matrix sparseMatrix
+#' @importFrom SingleCellExperiment SingleCellExperiment
+#' @param genes character() genes of interest
+#' @param file_ident character() ID of file to query
+#'
+#' @export
+hca_file_gene_query_new <- function(genes = character(),
+                                file_ident = character()){
+    ## connect to database
+    db_connection <- .database_connection()
+
+    row_data_all <-
+        tbl(db_connection, "genes_tbl") %>%
+        filter(file_id == file_ident) %>%
+        filter(gene %in% genes)
+
+    row_data <-
+        row_data_all %>%
+        select(-c("row_index"))
+
+    row_idx <-
+        row_data_all %>%
+        select(row_index)
+
+    col_data_all <-
+        tbl(db_connection, "cells_tbl") %>%
+        filter(file_id == file_ident)
+
+    col_data <-
+        col_data_all %>%
+        select(-c("col_index"))
+
+    col_idx <-
+        col_data_all %>%
+        select(col_index)
+
+    assay_idx <-
+        tbl(db_connection, "assays_tbl") %>%
+        ## something with filtering on the file_id is causing issues
+        filter(file_id == file_ident) %>%
+        inner_join(row_idx) %>%
+        inner_join(col_idx) %>%
+        collect()
+
+    ## metadata for this particular file
+    exp_metadata <- tbl(db_connection, "experiment_overviews") %>%
+        filter(file_id == file_ident) %>%
+        collect()
+    metadata <- list(donor_organism.genus_species = exp_metadata$donor_organism_genus_species,
+                     expression_data_type = exp_metadata$expression_data_type,
+                     library_preparation_protocol.library_construction_approach = exp_metadata$library_construction_approach,
+                     pipeline_version = exp_metadata$pipeline_version,
+                     specimen_from_organism.organ = exp_metadata$specimen_from_organism_organ)
+
+    ## start with zero matrix and then fill if applicable;
+    ## no need for if statement
+    result <- matrix(0, length(genes), ncol(col_data))
+
+
+    ## STUFF HERE
+    sce <- SingleCellExperiment(assays = assay_matrix,
+                                colData = col_data,
+                                rowData = row_data,
+                                metadata = metadata)
+
+    ## inform them when it is a fully zero matrix
+    ## if there were no non-zero values for this combination of row and column
+    ## indices, an empty table will be returned
+    if(dim(assay_idx)[1] != 0){
+        message("No non-zero expression values exist for the specified file
+                and genes. The returned assay matrix is a zero matrix")
+    }
+    return(sce)
 }
 

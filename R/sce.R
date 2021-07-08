@@ -28,37 +28,76 @@ h5ad_to_sce <- function(h5ad_filepath) {
 
 #' @rdname sce
 #'
-#' @description  function to change SingleCellLoomExperiment object's assay
-#'  matrix into sparse representation (typically `dgCMatrix`)
+#' @description convert a SummarizedExperiment assay to a
+#' sparse matrix representation
 #'
-#' @param loom_filepath character() absolute path to downloaded .loom file
-#'
-#' @importFrom SummarizedExperiment assay
-#' @importFrom methods as
-#'
-#' @return dgCMatrix sparse matrix representation
-loom_sparse_matrix <- function(loom_filepath) {
-    loom_sce_obj <- loom_to_sce(loom_filepath)
-    sparse_loom_matrix <- as(SummarizedExperiment::assay(loom_sce_obj), "dgCMatrix")
-    sparse_loom_matrix
+#' @param sce_obj SummarizedExperiment (or subclass) object
+to_sparse_matrix <- function(matrix_obj){
+    UseMethod(".to_sparse_matrix")
 }
 
 #' @rdname sce
 #'
-#' @description function to change extract the existing sparse matrix
-#' representation (typically `dgRMatrix`) of the SingleCellExperiment
-#' object's assay
+#' @description  function to change SingleCellLoomExperiment object's assay
+#'  matrix into sparse representation (`dgCMatrix`)
 #'
-#' @param h5ad_filepath character() absolute path to downloaded .h5ad file
+#' @param dgCMatrix sparse matrix
 #'
-#' @importFrom SummarizedExperiment assay
+#' @importFrom methods as
 #'
-#' @return dgRMatrix sparse matrix representation
-h5ad_sparse_matrix <- function(h5ad_filepath) {
-    h5ad_sce_obj <- h5ad_to_sce(h5ad_filepath)
-    sparse_h5ad_matrix <- as(SummarizedExperiment::assay(h5ad_sce_obj), "dgRMatrix")
-    sparse_h5ad_matrix
+#' @return dgCMatrix sparse matrix representation
+.to_sparse_matrix.dgCMatrix <- function(c_matrix) {
+    sparse_matrix <- as(c_matrix, "dgCMatrix")
+    sparse_matrix
 }
+
+#' @rdname sce
+#'
+#' @description  function to change SingleCellLoomExperiment object's assay
+#'  matrix into sparse representation (`dgRMatrix`)
+#'
+#' @param dgRMatrix sparse matrix
+#'
+#' @importFrom methods as
+#'
+#' @return dgCMatrix sparse matrix representation
+.to_sparse_matrix.dgRMatrix <- function(r_matrix) {
+    ## from: https://github.com/theislab/zellkonverter/issues/55
+    sparse_matrix <- as(as(r_matrix, "CsparseMatrix"), "dgCMatrix")
+    sparse_matrix
+}
+
+
+#' @rdname sce
+#'
+#' @description  function to change SingleCellLoomExperiment object's assay
+#'  matrix into sparse representation (`DelayedMatrix`)
+#'
+#' @param DelayedMatrix sparse matrix
+#'
+#' @importFrom methods as
+#'
+#' @return dgCMatrix sparse matrix representation
+.to_sparse_matrix.DelayedMatrix <- function(d_matrix) {
+    sparse_matrix <- as(d_matrix, "dgCMatrix")
+    sparse_matrix
+}
+
+#' @rdname sce
+#'
+#' @description  function to change SingleCellLoomExperiment object's assay
+#'  matrix into sparse representation (`matrix`)
+#'
+#' @param matrix sparse matrix
+#'
+#' @importFrom methods as
+#'
+#' @return dgCMatrix sparse matrix representation
+.to_sparse_matrix.matrix <- function(m_matrix) {
+    sparse_matrix <- as(m_matrix, "dgCMatrix")
+    sparse_matrix
+}
+
 
 #' @rdname sce
 #'
@@ -115,48 +154,45 @@ sparse_mtx_to_assay_tbl <- function(sparse_matrix){
     assay_tbl <- tibble(row_index, col_index, values)
     assay_tbl
 }
-#' @rdname sce
-#'
-#' @description convert a dgRMatrix sparse matrix representation of the assay
-#' into a reformatted tibble
-#'
-#' @param sparse_matrix dgRMatrix sparse matrix representation
-#'
-#' @importFrom tibble tibble
-#' @importFrom Matrix summary
-#'
-#' @return tibble with row_index, col_index, and value of each non-zero entry
-#' in the assay matrix
-## dgRMatrix implementation
-.sparse_matrix_to_assay_tbl.dgRMatrix <- function(sparse_matrix) {
-    stopifnot(
-        ## sparse_matrix must inherit from class dgRMatrix
-        `'sparse_matrix =' must inherit from class 'dgRMatrix'` =
-            inherits(sparse_matrix, "dgRMatrix")
-    )
 
-    ## handling of sparse matrices depends on the initial file type
-    ## same as with .loom matrices, just compressed row wise vs column wise
-    ##dim(sparse_matrix)
-    ##length(sparse_matrix@j)
-    ##length(sparse_matrix@p)
-    ##length(sparse_matrix@x)
+## #' @rdname sce
+## #'
+## #' @description convert a dgRMatrix sparse matrix representation of the assay
+## #' into a reformatted tibble
+## #'
+## #' @param sparse_matrix dgRMatrix sparse matrix representation
+## #'
+## #' @importFrom tibble tibble
+## #' @importFrom Matrix summary
+## #'
+## #' @return tibble with row_index, col_index, and value of each non-zero entry
+## #' in the assay matrix
+## ## dgRMatrix implementation
+## .sparse_matrix_to_assay_tbl.dgRMatrix <- function(sparse_matrix) {
+##     stopifnot(
+##         ## sparse_matrix must inherit from class dgRMatrix
+##         `'sparse_matrix =' must inherit from class 'dgRMatrix'` =
+##             inherits(sparse_matrix, "dgRMatrix")
+##     )
 
-    ## increment each element of col_index by one to match R's 1-based indexing
-    col_index <- sparse_matrix@j + 1
-    values <- sparse_matrix@x
+##     ## handling of sparse matrices depends on the initial file type
+##     ## same as with .loom matrices, just compressed row wise vs column wise
 
-    ## diff between each consecutive integer in the sequence
-    ## sparse_matrix@p gives number of non-zero values in each row
+##     ## increment each element of col_index by one to match R's 1-based indexing
+##     col_index <- sparse_matrix@j + 1
+##     values <- sparse_matrix@x
 
-    n_per_column <-  diff(sparse_matrix@p)
-    row_index <-  rep(seq_along(n_per_column), n_per_column)
-    ##str(h5ad_col_index)
+##     ## diff between each consecutive integer in the sequence
+##     ## sparse_matrix@p gives number of non-zero values in each row
 
-    # tibble is the row, column, and value for the entire matrix
-    assay_tbl <- tibble(row_index, col_index, values)
-    assay_tbl
-}
+##     n_per_column <-  diff(sparse_matrix@p)
+##     row_index <-  rep(seq_along(n_per_column), n_per_column)
+##     ##str(h5ad_col_index)
+
+##     # tibble is the row, column, and value for the entire matrix
+##     assay_tbl <- tibble(row_index, col_index, values)
+##     assay_tbl
+## }
 
 #' @rdname sce
 #'
